@@ -70,6 +70,7 @@
 </head>
 <body>
 
+  <!-- Ecrã de Login / Registo -->
   <div class="auth-container" id="auth-box">
     <h2>EDUSHOPING SaaS</h2>
     
@@ -91,7 +92,8 @@
     <div id="message"></div>
   </div>
 
-  <div id="dashboard">
+  <!-- Painel Principal do SaaS -->
+  <div id="dashboard" style="display: none;">
     <div class="top-bar">
       <div class="logo-area">
         <span style="font-weight: bold; font-size: 16px;">📦 edushoping</span>
@@ -260,7 +262,7 @@
           document.getElementById('previewContainer').style.display = 'block';
           imagemCarregada = true;
           
-          // Geração automática e instantânea do anúncio sem alertas de pop-up!
+          // Preenchimento automático e limpo sem pop-ups!
           document.getElementById('cat-produto').innerText = "Casa, Móveis e Decoração > Cozinha > Utensílios de Cozinha";
           document.getElementById('titulo-produto').value = "Kit 3 Descascadores E Fatiadores De Legumes Frutas Aço Inox";
           document.getElementById('desc-produto').value = "Facilite o preparo das suas refeições com este incrível Kit de Descascadores e Fatiadores em Aço Inox.\nPrático, durável e com lâminas extremamente afiadas para descascar legumes e frutas com rapidez e segurança.";
@@ -273,7 +275,7 @@
 
     function recalcularPrecos() {
       const margemPct = parseFloat(document.getElementById('meta-lucro-input').value) || 20;
-      const custoBase = 15.00; // Custo base simulado
+      const custoBase = 15.00;
 
       const canais = [
         { id: 'shopee', comissaoPct: 0.20, taxaFixa: 4.00 },
@@ -424,6 +426,7 @@
 
     function entrarNoSistema(id, email, tokens) {
       loggedUserId = id;
+      // Esconde o login e mostra o dashboard corretamente
       document.getElementById('auth-box').style.display = 'none';
       document.getElementById('dashboard').style.display = 'block';
       document.getElementById('user-email-logged').innerText = email;
