@@ -8,7 +8,6 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     body { background-color: #0b0f19; color: #fff; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
     
-    /* Login Box */
     .auth-container { background: #131b2e; width: 100%; max-width: 400px; padding: 30px; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.5); border: 1px solid #1e293b; }
     h2 { text-align: center; color: #f8fafc; margin-bottom: 24px; font-weight: 600; }
     .form-group { margin-bottom: 18px; }
@@ -24,7 +23,6 @@
     .success { background-color: #064e3b; color: #a7f3d0; border: 1px solid #047857; }
     .error { background-color: #7f1d1d; color: #fecaca; border: 1px solid #b91c1c; }
 
-    /* Dashboard Principal */
     #dashboard { display: none; width: 100%; max-width: 1200px; background: #0b0f19; }
     .top-bar { display: flex; justify-content: space-between; align-items: center; background: #131b2e; padding: 15px 25px; border-radius: 10px; border: 1px solid #1e293b; margin-bottom: 20px; }
     .logo-area { display: flex; align-items: center; gap: 12px; }
@@ -37,7 +35,6 @@
     .card { background: #131b2e; border: 1px solid #1e293b; border-radius: 10px; padding: 20px; }
     .card-title { font-size: 16px; font-weight: bold; margin-bottom: 15px; color: #f8fafc; display: flex; align-items: center; gap: 8px; }
     
-    /* Upload Section */
     .upload-zone { border: 2px dashed #3b82f6; background: #0f172a; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 15px; cursor: pointer; }
     .upload-zone input { display: none; }
     .upload-label { font-size: 13px; color: #94a3b8; cursor: pointer; display: block; }
@@ -49,7 +46,6 @@
 
     .textarea-box { width: 100%; background: #0f172a; border: 1px solid #334155; color: #cbd5e1; padding: 12px; border-radius: 6px; font-size: 13px; height: 100px; resize: none; margin-bottom: 15px; outline: none; }
 
-    /* Marketplaces List & Dynamic Connection */
     .market-item { display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 12px 15px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #334155; }
     .market-info { font-size: 13px; }
     .market-name { font-weight: bold; color: #f8fafc; }
@@ -71,7 +67,6 @@
 </head>
 <body>
 
-  <!-- Tela de Login / Registo -->
   <div class="auth-container" id="auth-box">
     <h2>EDUSHOPING SaaS</h2>
     
@@ -93,7 +88,6 @@
     <div id="message"></div>
   </div>
 
-  <!-- Dashboard Multi-Marketplace -->
   <div id="dashboard">
     <div class="top-bar">
       <div class="logo-area">
@@ -110,7 +104,6 @@
     </div>
 
     <div class="dashboard-grid">
-      <!-- Coluna Esquerda: Upload de Foto & IA -->
       <div class="card">
         <div class="card-title">📸 1. Imagem do Produto (Fundo Limpo)</div>
         
@@ -140,7 +133,6 @@
 Essa bomba elétrica universal é a solução definitiva para facilitar o seu dia a dia.</textarea>
       </div>
 
-      <!-- Coluna Direita: Marketplaces & Autenticação Real -->
       <div class="card">
         <div class="card-title">🛍️ Canais de Venda & Conexão API</div>
 
@@ -221,7 +213,6 @@ Essa bomba elétrica universal é a solução definitiva para facilitar o seu di
       </div>
     </div>
 
-    <!-- Rodapé Publicação -->
     <div class="publish-btn-area">
       <div style="font-size: 13px; color: #94a3b8; margin-bottom: 10px;">🚀 Publicar Anúncio em Lote — Sincronização automática com fotos e preços nas APIs oficiais dos marketplaces</div>
       <button class="btn-publish" onclick="publicarEmLote()">⚡ Publicar Agora nas Lojas Conectadas</button>
@@ -229,8 +220,9 @@ Essa bomba elétrica universal é a solução definitiva para facilitar o seu di
   </div>
 
   <script>
+    let loggedUserId = null;
     let lojasConectadasCount = 0;
-    const estadoLojas = { shopee: false, ml: false, amz: false, magalu: false, tiktok: false };
+    const mercados = ['shopee', 'ml', 'amz', 'magalu', 'tiktok'];
 
     function previewFoto(event) {
       const file = event.target.files[0];
@@ -244,15 +236,34 @@ Essa bomba elétrica universal é a solução definitiva para facilitar o seu di
       }
     }
 
-    function conectarLoja(idLoja, nomeExibicao) {
-      const userKey = prompt(`Introduza a sua Chave de API / Token da conta ${nomeExibicao}:`);
-      if (userKey && userKey.trim() !== "") {
-        estadoLojas[idLoja] = true;
-        document.getElementById(`box-${idLoja}`).innerHTML = `<span class="status-connected">✓ Conectado (${nomeExibicao})</span>`;
-        
+    async function conectarLoja(idLoja, nomeExibicao) {
+      const apiToken = prompt(`Introduza a sua Chave de API / Token da conta ${nomeExibicao}:`);
+      if (apiToken && apiToken.trim() !== "") {
+        try {
+          const res = await fetch('/save-token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: loggedUserId, marketplace: idLoja, apiToken })
+          });
+
+          if (res.ok) {
+            marcarLojaComoConectada(idLoja, nomeExibicao);
+            alert(`Conta ${nomeExibicao} conectada e salva no banco de dados com sucesso!`);
+          } else {
+            alert('Erro ao guardar o token no servidor.');
+          }
+        } catch (err) {
+          alert('Erro de conexão ao salvar token.');
+        }
+      }
+    }
+
+    function marcarLojaComoConectada(idLoja, nomeExibicao) {
+      const box = document.getElementById(`box-${idLoja}`);
+      if (!box.querySelector('.status-connected')) {
+        box.innerHTML = `<span class="status-connected">✓ Conectado (${nomeExibicao})</span>`;
         lojasConectadasCount++;
         atualizarContadorTopo();
-        alert(`Conta ${nomeExibicao} conectada com sucesso!`);
       }
     }
 
@@ -281,69 +292,74 @@ Essa bomba elétrica universal é a solução definitiva para facilitar o seu di
     async function registar() {
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
-
-      if (!email || !password) {
-        exibirMensagem('Por favor, preencha o email e a senha.', 'error');
-        return;
-      }
+      if (!email || !password) { exibirMensagem('Preencha email e senha.', 'error'); return; }
 
       try {
-        const response = await fetch('/register', {
+        const res = await fetch('/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password })
         });
-        const data = await response.json();
-
-        if (response.ok) {
-          entrarNoSistema(data.user.email);
-        } else {
-          exibirMensagem(data.erro || 'Erro ao criar conta.', 'error');
-        }
-      } catch (err) {
-        exibirMensagem('Erro de conexão com o servidor.', 'error');
-      }
+        const data = await res.json();
+        if (res.ok) { entrarNoSistema(data.user.id, data.user.email, []); }
+        else { exibirMensagem(data.erro || 'Erro ao registar.', 'error'); }
+      } catch (err) { exibirMensagem('Erro de conexão.', 'error'); }
     }
 
     async function fazerLogin() {
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
-
-      if (!email || !password) {
-        exibirMensagem('Por favor, preencha o email e a senha.', 'error');
-        return;
-      }
+      if (!email || !password) { exibirMensagem('Preencha email e senha.', 'error'); return; }
 
       try {
-        const response = await fetch('/login', {
+        const res = await fetch('/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password })
         });
-        const data = await response.json();
-
-        if (response.ok) {
-          entrarNoSistema(data.user.email);
+        const data = await res.json();
+        if (res.ok) {
+          entrarNoSistema(data.user.id, data.user.email, data.tokens);
         } else {
           exibirMensagem(data.erro || 'Credenciais inválidas.', 'error');
         }
-      } catch (err) {
-        exibirMensagem('Erro de conexão com o servidor.', 'error');
-      }
+      } catch (err) { exibirMensagem('Erro de conexão.', 'error'); }
     }
 
-    function entrarNoSistema(email) {
+    function entrarNoSistema(id, email, tokens) {
+      loggedUserId = id;
       document.getElementById('auth-box').style.display = 'none';
       document.getElementById('dashboard').style.display = 'block';
       document.getElementById('user-email-logged').innerText = email;
+
+      // Restaurar tokens salvos do PostgreSQL se existirem
+      const nomes = { shopee: 'Shopee', ml: 'Mercado Livre', amz: 'Amazon Brasil', magalu: 'Magazine Luiza', tiktok: 'TikTok Shop' };
+      tokens.forEach(t => {
+        marcarLojaComoConectada(t.marketplace, nomes[t.marketplace]);
+      });
     }
 
     function logout() {
+      loggedUserId = null;
+      lojasConectadasCount = 0;
+      atualizarContadorTopo();
       document.getElementById('dashboard').style.display = 'none';
       document.getElementById('auth-box').style.display = 'block';
       document.getElementById('message').style.display = 'none';
       document.getElementById('email').value = '';
       document.getElementById('password').value = '';
+      
+      // Resetar botões de conexão na interface
+      const botoesInfo = [
+        { id: 'shopee', nome: 'Shopee' },
+        { id: 'ml', nome: 'Mercado Livre' },
+        { id: 'amz', nome: 'Amazon Brasil' },
+        { id: 'magalu', nome: 'Magazine Luiza' },
+        { id: 'tiktok', nome: 'TikTok Shop' }
+      ];
+      botoesInfo.forEach(b => {
+        document.getElementById(`box-${b.id}`).innerHTML = `<button class="btn-connect" onclick="conectarLoja('${b.id}', '${b.nome}')">🔗 Conectar ${b.nome}</button>`;
+      });
     }
 
     function exibirMensagem(texto, tipo) {
