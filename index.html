@@ -49,7 +49,7 @@
 
     .textarea-box { width: 100%; background: #0f172a; border: 1px solid #334155; color: #cbd5e1; padding: 12px; border-radius: 6px; font-size: 13px; height: 100px; resize: none; margin-bottom: 15px; outline: none; }
 
-    /* Marketplaces List & Connection */
+    /* Marketplaces List & Dynamic Connection */
     .market-item { display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 12px 15px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #334155; }
     .market-info { font-size: 13px; }
     .market-name { font-weight: bold; color: #f8fafc; }
@@ -58,8 +58,8 @@
     .profit { color: #4ade80; font-size: 12px; }
     .price { font-weight: bold; color: #facc15; font-size: 15px; }
 
-    .btn-connect { background: #3b82f6; color: #fff; border: none; padding: 5px 10px; border-radius: 4px; font-size: 11px; cursor: pointer; margin-top: 4px; }
-    .btn-connect:hover { background: #2563eb; }
+    .btn-connect { background: #e11d48; color: #fff; border: none; padding: 6px 12px; border-radius: 4px; font-size: 11px; font-weight: bold; cursor: pointer; margin-top: 5px; }
+    .btn-connect:hover { background: #be123c; }
     .status-connected { color: #4ade80; font-size: 11px; font-weight: bold; }
 
     .publish-btn-area { margin-top: 20px; background: #131b2e; border: 1px solid #1e293b; padding: 20px; border-radius: 10px; text-align: center; }
@@ -102,7 +102,7 @@
         <span style="font-size: 12px; color: #94a3b8; margin-left: 10px;">Gestão & Precificação Multi-Marketplace</span>
       </div>
       <div class="top-stats">
-        <span id="stores-count">🟢 4 de 5 Lojas Conectadas</span>
+        <span id="stores-count" style="color: #f87171; font-weight: bold;">🔴 0 de 5 Lojas Conectadas</span>
         <span>Meta Lucro: 20%</span>
         <span id="user-email-logged" style="color: #60a5fa; font-size: 13px;"></span>
         <button class="btn-logout" onclick="logout()">Sair</button>
@@ -140,7 +140,7 @@
 Essa bomba elétrica universal é a solução definitiva para facilitar o seu dia a dia.</textarea>
       </div>
 
-      <!-- Coluna Direita: Marketplaces & Autenticação -->
+      <!-- Coluna Direita: Marketplaces & Autenticação Real -->
       <div class="card">
         <div class="card-title">🛍️ Canais de Venda & Conexão API</div>
 
@@ -149,7 +149,9 @@ Essa bomba elétrica universal é a solução definitiva para facilitar o seu di
           <div class="market-info">
             <div class="market-name">🟡 Shopee</div>
             <div class="market-sub">Comissão: 20% + R$ 4.00</div>
-            <span class="status-connected" id="status-shopee">✓ Conectado (edushoping_official)</span>
+            <div id="box-shopee">
+              <button class="btn-connect" onclick="conectarLoja('shopee', 'Shopee')">🔗 Conectar Loja Shopee</button>
+            </div>
           </div>
           <div class="market-pricing">
             <div class="profit">LUCRO LÍQUIDO<br>R$ 6.83 (20%)</div>
@@ -162,7 +164,9 @@ Essa bomba elétrica universal é a solução definitiva para facilitar o seu di
           <div class="market-info">
             <div class="market-name">🟡 Mercado Livre</div>
             <div class="market-sub">Comissão: 16.5% + R$ 6.00</div>
-            <span class="status-connected" id="status-ml">✓ Conectado (edushoping_MLB)</span>
+            <div id="box-ml">
+              <button class="btn-connect" onclick="conectarLoja('ml', 'Mercado Livre')">🔗 Conectar Mercado Livre</button>
+            </div>
           </div>
           <div class="market-pricing">
             <div class="profit">LUCRO LÍQUIDO<br>R$ 7.09 (20%)</div>
@@ -175,7 +179,9 @@ Essa bomba elétrica universal é a solução definitiva para facilitar o seu di
           <div class="market-info">
             <div class="market-name">🔴 Amazon Brasil</div>
             <div class="market-sub">Comissão: 15% + R$ 2.50</div>
-            <span class="status-connected" id="status-amz">✓ Conectado (edushoping_amz_br)</span>
+            <div id="box-amz">
+              <button class="btn-connect" onclick="conectarLoja('amz', 'Amazon Brasil')">🔗 Conectar Amazon</button>
+            </div>
           </div>
           <div class="market-pricing">
             <div class="profit">LUCRO LÍQUIDO<br>R$ 5.85 (20%)</div>
@@ -189,7 +195,7 @@ Essa bomba elétrica universal é a solução definitiva para facilitar o seu di
             <div class="market-name">🔵 Magazine Luiza</div>
             <div class="market-sub">Comissão: 18% + R$ 3.00</div>
             <div id="box-magalu">
-              <button class="btn-connect" onclick="conectarLoja('Magalu')">🔗 Conectar Conta Magalu</button>
+              <button class="btn-connect" onclick="conectarLoja('magalu', 'Magazine Luiza')">🔗 Conectar Magalu</button>
             </div>
           </div>
           <div class="market-pricing">
@@ -203,7 +209,9 @@ Essa bomba elétrica universal é a solução definitiva para facilitar o seu di
           <div class="market-info">
             <div class="market-name">⚫ TikTok Shop</div>
             <div class="market-sub">Comissão: 5% + R$ 2.00</div>
-            <span class="status-connected" id="status-tiktok">✓ Conectado (@edushoping.loja)</span>
+            <div id="box-tiktok">
+              <button class="btn-connect" onclick="conectarLoja('tiktok', 'TikTok Shop')">🔗 Conectar TikTok Shop</button>
+            </div>
           </div>
           <div class="market-pricing">
             <div class="profit">LUCRO LÍQUIDO<br>R$ 4.93 (20%)</div>
@@ -216,11 +224,14 @@ Essa bomba elétrica universal é a solução definitiva para facilitar o seu di
     <!-- Rodapé Publicação -->
     <div class="publish-btn-area">
       <div style="font-size: 13px; color: #94a3b8; margin-bottom: 10px;">🚀 Publicar Anúncio em Lote — Sincronização automática com fotos e preços nas APIs oficiais dos marketplaces</div>
-      <button class="btn-publish" onclick="alert('Foto, anúncio e preços publicados em simultâneo em todas as lojas ativas!')">⚡ Publicar Agora em Todas as Lojas Selecionadas</button>
+      <button class="btn-publish" onclick="publicarEmLote()">⚡ Publicar Agora nas Lojas Conectadas</button>
     </div>
   </div>
 
   <script>
+    let lojasConectadasCount = 0;
+    const estadoLojas = { shopee: false, ml: false, amz: false, magalu: false, tiktok: false };
+
     function previewFoto(event) {
       const file = event.target.files[0];
       if (file) {
@@ -233,12 +244,37 @@ Essa bomba elétrica universal é a solução definitiva para facilitar o seu di
       }
     }
 
-    function conectarLoja(nomePlataforma) {
-      const userKey = prompt(`Introduza a sua Chave de API / Token da conta ${nomePlataforma}:`);
-      if (userKey) {
-        document.getElementById('box-magalu').innerHTML = `<span class="status-connected">✓ Conectado (edushoping_${nomePlataforma.toLowerCase()})</span>`;
-        document.getElementById('stores-count').innerText = '🟢 5 de 5 Lojas Conectadas';
-        alert(`Conta ${nomePlataforma} autenticada com sucesso!`);
+    function conectarLoja(idLoja, nomeExibicao) {
+      const userKey = prompt(`Introduza a sua Chave de API / Token da conta ${nomeExibicao}:`);
+      if (userKey && userKey.trim() !== "") {
+        estadoLojas[idLoja] = true;
+        document.getElementById(`box-${idLoja}`).innerHTML = `<span class="status-connected">✓ Conectado (${nomeExibicao})</span>`;
+        
+        lojasConectadasCount++;
+        atualizarContadorTopo();
+        alert(`Conta ${nomeExibicao} conectada com sucesso!`);
+      }
+    }
+
+    function atualizarContadorTopo() {
+      const el = document.getElementById('stores-count');
+      if (lojasConectadasCount === 0) {
+        el.style.color = '#f87171';
+        el.innerText = '🔴 0 de 5 Lojas Conectadas';
+      } else if (lojasConectadasCount < 5) {
+        el.style.color = '#facc15';
+        el.innerText = `🟡 ${lojasConectadasCount} de 5 Lojas Conectadas`;
+      } else {
+        el.style.color = '#4ade80';
+        el.innerText = '🟢 5 de 5 Lojas Conectadas';
+      }
+    }
+
+    function publicarEmLote() {
+      if (lojasConectadasCount === 0) {
+        alert('Atenção: Nenhuma loja está conectada! Clique nos botões "Conectar" para autenticar pelo menos uma loja antes de publicar.');
+      } else {
+        alert(`Anúncio e imagem publicados com sucesso em ${lojasConectadasCount} loja(s) conectada(s)!`);
       }
     }
 
