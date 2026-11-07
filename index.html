@@ -366,7 +366,7 @@
       }
     }
 
-    function publicarEmLote() {
+    async function publicarEmLote() {
       if (lojasConectadasCount === 0) {
         alert('Atenção: Nenhuma loja está conectada! Conecte pelo menos uma loja (ex: Shopee) antes de publicar.');
         return;
@@ -379,16 +379,38 @@
       const titulo = document.getElementById('titulo-produto').value;
       const precoShopee = document.getElementById('preco-shopee').innerText;
       const margemPct = document.getElementById('meta-lucro-input').value;
+      const descricao = document.getElementById('desc-produto').value;
 
-      produtosPublicados.push({
-        foto: ultimaImagemSrc,
-        titulo: titulo,
-        marketplace: "Shopee",
-        preco: precoShopee
-      });
+      try {
+        // Enviar requisição real para o backend salvar o produto publicável
+        const res = await fetch('/publish-product', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: loggedUserId,
+            marketplace: 'shopee',
+            titulo: titulo,
+            descricao: descricao,
+            preco: precoShopee,
+            foto: ultimaImagemSrc
+          })
+        });
 
-      renderizarTabelaProdutos();
-      alert(`Sucesso! O anúncio "${titulo}" foi publicado com ${margemPct}% de lucro na sua loja da Shopee!`);
+        if (res.ok) {
+          produtosPublicados.push({
+            foto: ultimaImagemSrc,
+            titulo: titulo,
+            marketplace: "Shopee",
+            preco: precoShopee
+          });
+          renderizarTabelaProdutos();
+          alert(`Sucesso! O anúncio "${titulo}" foi integrado e sincronizado na sua loja da Shopee com ${margemPct}% de lucro!`);
+        } else {
+          alert('Erro ao sincronizar o produto com o servidor.');
+        }
+      } catch (err) {
+        alert('Erro de conexão ao publicar o produto.');
+      }
     }
 
     function renderizarTabelaProdutos() {
@@ -406,7 +428,7 @@
             <td style="font-weight: 600; color: #f8fafc;">${p.titulo}</td>
             <td><span class="badge-shopee">${p.marketplace}</span></td>
             <td style="color: #facc15; font-weight: bold;">${p.preco}</td>
-            <td><span style="color: #4ade80; font-weight: bold;">● Ativo na Loja</span></td>
+            <td><span style="color: #4ade80; font-weight: bold;">● Sincronizado</span></td>
           </tr>
         `;
       });
