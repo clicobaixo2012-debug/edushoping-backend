@@ -24,7 +24,7 @@
     .success { background-color: #064e3b; color: #a7f3d0; border: 1px solid #047857; }
     .error { background-color: #7f1d1d; color: #fecaca; border: 1px solid #b91c1c; }
 
-    /* Dashboard Principal (Estilo Multi-Marketplace) */
+    /* Dashboard Principal */
     #dashboard { display: none; width: 100%; max-width: 1200px; background: #0b0f19; }
     .top-bar { display: flex; justify-content: space-between; align-items: center; background: #131b2e; padding: 15px 25px; border-radius: 10px; border: 1px solid #1e293b; margin-bottom: 20px; }
     .logo-area { display: flex; align-items: center; gap: 12px; }
@@ -37,12 +37,19 @@
     .card { background: #131b2e; border: 1px solid #1e293b; border-radius: 10px; padding: 20px; }
     .card-title { font-size: 16px; font-weight: bold; margin-bottom: 15px; color: #f8fafc; display: flex; align-items: center; gap: 8px; }
     
+    /* Upload Section */
+    .upload-zone { border: 2px dashed #3b82f6; background: #0f172a; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 15px; cursor: pointer; }
+    .upload-zone input { display: none; }
+    .upload-label { font-size: 13px; color: #94a3b8; cursor: pointer; display: block; }
+    .preview-box { display: none; margin-top: 10px; text-align: center; }
+    .preview-box img { max-width: 100%; max-height: 140px; border-radius: 6px; border: 1px solid #334155; }
+
     .btn-action { background: #f59e0b; color: #000; font-weight: bold; width: 100%; padding: 12px; border-radius: 6px; border: none; cursor: pointer; margin-bottom: 15px; transition: opacity 0.2s; }
     .btn-action:hover { opacity: 0.9; }
 
-    .textarea-box { width: 100%; background: #0f172a; border: 1px solid #334155; color: #cbd5e1; padding: 12px; border-radius: 6px; font-size: 13px; height: 120px; resize: none; margin-bottom: 15px; outline: none; }
+    .textarea-box { width: 100%; background: #0f172a; border: 1px solid #334155; color: #cbd5e1; padding: 12px; border-radius: 6px; font-size: 13px; height: 100px; resize: none; margin-bottom: 15px; outline: none; }
 
-    /* Marketplaces List */
+    /* Marketplaces List & Connection */
     .market-item { display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 12px 15px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #334155; }
     .market-info { font-size: 13px; }
     .market-name { font-weight: bold; color: #f8fafc; }
@@ -50,6 +57,10 @@
     .market-pricing { text-align: right; }
     .profit { color: #4ade80; font-size: 12px; }
     .price { font-weight: bold; color: #facc15; font-size: 15px; }
+
+    .btn-connect { background: #3b82f6; color: #fff; border: none; padding: 5px 10px; border-radius: 4px; font-size: 11px; cursor: pointer; margin-top: 4px; }
+    .btn-connect:hover { background: #2563eb; }
+    .status-connected { color: #4ade80; font-size: 11px; font-weight: bold; }
 
     .publish-btn-area { margin-top: 20px; background: #131b2e; border: 1px solid #1e293b; padding: 20px; border-radius: 10px; text-align: center; }
     .btn-publish { background: #2563eb; color: #fff; font-weight: bold; width: 100%; padding: 14px; border-radius: 6px; border: none; font-size: 15px; cursor: pointer; }
@@ -91,7 +102,7 @@
         <span style="font-size: 12px; color: #94a3b8; margin-left: 10px;">Gestão & Precificação Multi-Marketplace</span>
       </div>
       <div class="top-stats">
-        <span>🟢 4 de 5 Lojas Conectadas</span>
+        <span id="stores-count">🟢 4 de 5 Lojas Conectadas</span>
         <span>Meta Lucro: 20%</span>
         <span id="user-email-logged" style="color: #60a5fa; font-size: 13px;"></span>
         <button class="btn-logout" onclick="logout()">Sair</button>
@@ -99,35 +110,46 @@
     </div>
 
     <div class="dashboard-grid">
-      <!-- Coluna Esquerda: Gerador de Anúncios -->
+      <!-- Coluna Esquerda: Upload de Foto & IA -->
       <div class="card">
-        <button class="btn-action" onclick="alert('IA gerando anúncio otimizado...')">⚡ Gerar Anúncio Automaticamente</button>
+        <div class="card-title">📸 1. Imagem do Produto (Fundo Limpo)</div>
+        
+        <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
+          <span class="upload-label">📥 Clique para selecionar a foto do produto ou arraste o ficheiro aqui</span>
+          <input type="file" id="fileInput" accept="image/*" onchange="previewFoto(event)">
+        </div>
+
+        <div class="preview-box" id="previewContainer">
+          <img id="imgPreview" src="" alt="Pré-visualização">
+          <p style="font-size: 11px; color: #4ade80; margin-top: 4px;">✓ Imagem carregada e pronta para otimização visual</p>
+        </div>
+
+        <button class="btn-action" style="margin-top: 10px;" onclick="alert('IA a analisar a imagem e a gerar título/descrição SEO otimizados!')">⚡ Gerar Anúncio Automaticamente</button>
         
         <div class="card-title">📝 2. Conteúdo do Anúncio</div>
         
         <label style="font-size: 12px; color: #64748b;">CATEGORIA IDENTIFICADA</label>
-        <p style="font-size: 13px; color: #38bdf8; margin: 5px 0 15px 0;">Casa, Móveis e Decoração > Cozinha > Bebedouros e Purificadores</p>
+        <p style="font-size: 13px; color: #38bdf8; margin: 5px 0 10px 0;">Casa, Móveis e Decoração > Cozinha > Bebedouros e Purificadores</p>
 
         <label style="font-size: 12px; color: #64748b;">TÍTULO DO ANÚNCIO (SEO)</label>
-        <input type="text" value="Bomba Elétrica para Galão de Água Recarregável USB Automáti" style="margin: 5px 0 15px 0;">
+        <input type="text" value="Bomba Elétrica para Galão de Água Recarregável USB Automáti" style="margin: 5px 0 10px 0;">
 
         <label style="font-size: 12px; color: #64748b;">DESCRIÇÃO COMERCIAL COMPLETA</label>
         <textarea class="textarea-box">Tenha água fresca com apenas um toque, sem esforço e sem bagunça!
 
-Essa bomba elétrica universal é a solução definitiva para facilitar o seu dia a dia, eliminando o peso de virar galões pesados e o desperdício de água.
-
-Por que escolher este modelo?
-- Bateria potente e recarregável via USB para uso contínuo.</textarea>
+Essa bomba elétrica universal é a solução definitiva para facilitar o seu dia a dia.</textarea>
       </div>
 
-      <!-- Coluna Direita: Marketplaces e Precificação -->
+      <!-- Coluna Direita: Marketplaces & Autenticação -->
       <div class="card">
-        <div class="card-title">🛍️ Canais de Venda Ativos</div>
+        <div class="card-title">🛍️ Canais de Venda & Conexão API</div>
 
+        <!-- Shopee -->
         <div class="market-item">
           <div class="market-info">
             <div class="market-name">🟡 Shopee</div>
-            <div class="market-sub">Comissão: 20% + R$ 4.00 | Conectado (edushoping_official)</div>
+            <div class="market-sub">Comissão: 20% + R$ 4.00</div>
+            <span class="status-connected" id="status-shopee">✓ Conectado (edushoping_official)</span>
           </div>
           <div class="market-pricing">
             <div class="profit">LUCRO LÍQUIDO<br>R$ 6.83 (20%)</div>
@@ -135,10 +157,12 @@ Por que escolher este modelo?
           </div>
         </div>
 
+        <!-- Mercado Livre -->
         <div class="market-item">
           <div class="market-info">
             <div class="market-name">🟡 Mercado Livre</div>
-            <div class="market-sub">Comissão: 16.5% + R$ 6.00 | Conectado (edushoping_MLB)</div>
+            <div class="market-sub">Comissão: 16.5% + R$ 6.00</div>
+            <span class="status-connected" id="status-ml">✓ Conectado (edushoping_MLB)</span>
           </div>
           <div class="market-pricing">
             <div class="profit">LUCRO LÍQUIDO<br>R$ 7.09 (20%)</div>
@@ -146,10 +170,12 @@ Por que escolher este modelo?
           </div>
         </div>
 
+        <!-- Amazon -->
         <div class="market-item">
           <div class="market-info">
             <div class="market-name">🔴 Amazon Brasil</div>
-            <div class="market-sub">Comissão: 15% + R$ 2.50 | Conectado (edushoping_amz_br)</div>
+            <div class="market-sub">Comissão: 15% + R$ 2.50</div>
+            <span class="status-connected" id="status-amz">✓ Conectado (edushoping_amz_br)</span>
           </div>
           <div class="market-pricing">
             <div class="profit">LUCRO LÍQUIDO<br>R$ 5.85 (20%)</div>
@@ -157,10 +183,14 @@ Por que escolher este modelo?
           </div>
         </div>
 
+        <!-- Magalu -->
         <div class="market-item">
           <div class="market-info">
             <div class="market-name">🔵 Magazine Luiza</div>
-            <div class="market-sub">Comissão: 18% + R$ 3.00 | Clique para conectar loja</div>
+            <div class="market-sub">Comissão: 18% + R$ 3.00</div>
+            <div id="box-magalu">
+              <button class="btn-connect" onclick="conectarLoja('Magalu')">🔗 Conectar Conta Magalu</button>
+            </div>
           </div>
           <div class="market-pricing">
             <div class="profit">LUCRO LÍQUIDO<br>R$ 6.29 (20%)</div>
@@ -168,10 +198,12 @@ Por que escolher este modelo?
           </div>
         </div>
 
+        <!-- TikTok Shop -->
         <div class="market-item">
           <div class="market-info">
             <div class="market-name">⚫ TikTok Shop</div>
-            <div class="market-sub">Comissão: 5% + R$ 2.00 | Conectado (@edushoping.loja)</div>
+            <div class="market-sub">Comissão: 5% + R$ 2.00</div>
+            <span class="status-connected" id="status-tiktok">✓ Conectado (@edushoping.loja)</span>
           </div>
           <div class="market-pricing">
             <div class="profit">LUCRO LÍQUIDO<br>R$ 4.93 (20%)</div>
@@ -183,12 +215,33 @@ Por que escolher este modelo?
 
     <!-- Rodapé Publicação -->
     <div class="publish-btn-area">
-      <div style="font-size: 13px; color: #94a3b8; margin-bottom: 10px;">🚀 4. Publicar Anúncio em Lote — Sincronização automática com as APIs oficiais dos marketplaces</div>
-      <button class="btn-publish" onclick="alert('Anúncio publicado com sucesso em todas as lojas selecionadas!')">⚡ Publicar Agora em Todas as Lojas Selecionadas</button>
+      <div style="font-size: 13px; color: #94a3b8; margin-bottom: 10px;">🚀 Publicar Anúncio em Lote — Sincronização automática com fotos e preços nas APIs oficiais dos marketplaces</div>
+      <button class="btn-publish" onclick="alert('Foto, anúncio e preços publicados em simultâneo em todas as lojas ativas!')">⚡ Publicar Agora em Todas as Lojas Selecionadas</button>
     </div>
   </div>
 
   <script>
+    function previewFoto(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          document.getElementById('imgPreview').src = e.target.result;
+          document.getElementById('previewContainer').style.display = 'block';
+        }
+        reader.readAsDataURL(file);
+      }
+    }
+
+    function conectarLoja(nomePlataforma) {
+      const userKey = prompt(`Introduza a sua Chave de API / Token da conta ${nomePlataforma}:`);
+      if (userKey) {
+        document.getElementById('box-magalu').innerHTML = `<span class="status-connected">✓ Conectado (edushoping_${nomePlataforma.toLowerCase()})</span>`;
+        document.getElementById('stores-count').innerText = '🟢 5 de 5 Lojas Conectadas';
+        alert(`Conta ${nomePlataforma} autenticada com sucesso!`);
+      }
+    }
+
     async function registar() {
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
