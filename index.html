@@ -134,7 +134,7 @@ Essa bomba elétrica universal é a solução definitiva para facilitar o seu di
       </div>
 
       <div class="card">
-        <div class="card-title">🛍️ Canais de Venda & Conexão API</div>
+        <div class="card-title">🛍️ Canais de Venda & Conexão por Utilizador</div>
 
         <!-- Shopee -->
         <div class="market-item">
@@ -214,7 +214,7 @@ Essa bomba elétrica universal é a solução definitiva para facilitar o seu di
     </div>
 
     <div class="publish-btn-area">
-      <div style="font-size: 13px; color: #94a3b8; margin-bottom: 10px;">🚀 Publicar Anúncio em Lote — Sincronização automática com fotos e preços nas APIs oficiais dos marketplaces</div>
+      <div style="font-size: 13px; color: #94a3b8; margin-bottom: 10px;">🚀 Publicar Anúncio em Lote — Sincronização automática com fotos e preços nas contas conectadas</div>
       <button class="btn-publish" onclick="publicarEmLote()">⚡ Publicar Agora nas Lojas Conectadas</button>
     </div>
   </div>
@@ -222,7 +222,6 @@ Essa bomba elétrica universal é a solução definitiva para facilitar o seu di
   <script>
     let loggedUserId = null;
     let lojasConectadasCount = 0;
-    const mercados = ['shopee', 'ml', 'amz', 'magalu', 'tiktok'];
 
     function previewFoto(event) {
       const file = event.target.files[0];
@@ -237,31 +236,31 @@ Essa bomba elétrica universal é a solução definitiva para facilitar o seu di
     }
 
     async function conectarLoja(idLoja, nomeExibicao) {
-      const apiToken = prompt(`Introduza a sua Chave de API / Token da conta ${nomeExibicao}:`);
-      if (apiToken && apiToken.trim() !== "") {
+      const nomeUsuario = prompt(`Digite o seu Nome de Utilizador ou Nome da Loja no ${nomeExibicao} (ex: edushoping_oficial):`);
+      if (nomeUsuario && nomeUsuario.trim() !== "") {
         try {
           const res = await fetch('/save-token', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: loggedUserId, marketplace: idLoja, apiToken })
+            body: JSON.stringify({ userId: loggedUserId, marketplace: idLoja, apiToken: nomeUsuario.trim() })
           });
 
           if (res.ok) {
-            marcarLojaComoConectada(idLoja, nomeExibicao);
-            alert(`Conta ${nomeExibicao} conectada e salva no banco de dados com sucesso!`);
+            marcarLojaComoConectada(idLoja, nomeUsuario.trim());
+            alert(`Conta ${nomeExibicao} conectada com sucesso (${nomeUsuario.trim()})!`);
           } else {
-            alert('Erro ao guardar o token no servidor.');
+            alert('Erro ao guardar os dados da loja no servidor.');
           }
         } catch (err) {
-          alert('Erro de conexão ao salvar token.');
+          alert('Erro de conexão ao salvar loja.');
         }
       }
     }
 
-    function marcarLojaComoConectada(idLoja, nomeExibicao) {
+    function marcarLojaComoConectada(idLoja, nomeUsuario) {
       const box = document.getElementById(`box-${idLoja}`);
       if (!box.querySelector('.status-connected')) {
-        box.innerHTML = `<span class="status-connected">✓ Conectado (${nomeExibicao})</span>`;
+        box.innerHTML = `<span class="status-connected">✓ Conectado (${nomeUsuario})</span>`;
         lojasConectadasCount++;
         atualizarContadorTopo();
       }
@@ -332,10 +331,8 @@ Essa bomba elétrica universal é a solução definitiva para facilitar o seu di
       document.getElementById('dashboard').style.display = 'block';
       document.getElementById('user-email-logged').innerText = email;
 
-      // Restaurar tokens salvos do PostgreSQL se existirem
-      const nomes = { shopee: 'Shopee', ml: 'Mercado Livre', amz: 'Amazon Brasil', magalu: 'Magazine Luiza', tiktok: 'TikTok Shop' };
       tokens.forEach(t => {
-        marcarLojaComoConectada(t.marketplace, nomes[t.marketplace]);
+        marcarLojaComoConectada(t.marketplace, t.api_token);
       });
     }
 
@@ -349,7 +346,6 @@ Essa bomba elétrica universal é a solução definitiva para facilitar o seu di
       document.getElementById('email').value = '';
       document.getElementById('password').value = '';
       
-      // Resetar botões de conexão na interface
       const botoesInfo = [
         { id: 'shopee', nome: 'Shopee' },
         { id: 'ml', nome: 'Mercado Livre' },
