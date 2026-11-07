@@ -3,103 +3,104 @@ const { Pool } = require('pg');
 const path = require('path');
 
 const app = express();
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' })); // Permitir imagens em Base64
 app.use(express.static(__dirname));
 
+// Configuração da Base de Dados PostgreSQL (Render)
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
-  }
+  ssl: { rejectUnauthorized: false }
 });
 
-// Criar tabelas necessárias
-pool.query(`
-  CREATE TABLE IF NOT EXISTS users (
-    id SERIAL PRIMARY KEY,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    password VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  );
+// Criar tabelas necessárias na BD ao iniciar
+async function initDB() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id SERIAL PRIMARY KEY,
+      email VARCHAR(255) UNIQUE NOT NULL,
+      password VARCHAR(255) NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS user_tokens (
+      id SERIAL PRIMARY KEY,
+      user_id INT REFERENCES users(id),
+      marketplace VARCHAR(50),
+      api_token VARCHAR(255)
+    );
+    CREATE TABLE IF NOT EXISTS published_products (
+      id SERIAL PRIMARY KEY,
+      user_id INT REFERENCES users(id),
+      marketplace VARCHAR(50),
+      titulo TEXT,
+      descricao TEXT,
+      preco VARCHAR(50),
+      foto TEXT
+    );
+  `);
+  console.log("Base de dados inicializada com sucesso!");
+}
+initDB();
 
-  CREATE TABLE IF NOT EXISTS user_tokens (
-    id SERIAL PRIMARY KEY,
-    user_id INT REFERENCES users(id) ON DELETE CASCADE,
-    marketplace VARCHAR(50) NOT NULL,
-    api_token VARCHAR(255) NOT NULL,
-    UNIQUE(user_id, marketplace)
-  );
-`).then(() => {
-  console.log("Tabelas 'users' e 'user_tokens' verificadas/criadas com sucesso!");
-}).catch(err => {
-  console.error("Erro ao criar tabelas:", err);
-});
-
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
-});
-
+// Rota de Registo
 app.post('/register', async (req, res) => {
   const { email, password } = req.body;
   try {
-    const newUser = await pool.query(
-      'INSERT INTO users (email, password) VALUES ($1, $2) RETURNING id, email, created_at',
+    const result = await pool.query(
+      'INSERT INTO users (email, password) VALUES ($1, $2) RETURNING id, email',
       [email, password]
     );
-    res.status(201).json({ mensagem: 'Utilizador registado com sucesso!', user: newUser.rows[0] });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ erro: 'Erro ao registar utilizador (talvez o email já exista).' });
+    res.json({ user: result.rows[0] });
+  } catch (err) {
+    res.status(400).json({ erro: 'E-mail já registado ou erro no servidor.' });
   }
 });
 
+// Rota de Login
 app.post('/login', async (req, res) => {
   const { email, password } = req.body;
   try {
-    const user = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
-    
-    if (user.rows.length === 0) {
-      return res.status(404).json({ erro: 'Utilizador não encontrado.' });
+    const result = await pool.query(
+      'SELECT id, email FROM users WHERE email = $1 AND password = $2',
+      [email, password]
+    );
+    if (result.rows.length > 0) {
+      const user = result.rows[0];
+      const tokensRes = await pool.query('SELECT marketplace, api_token FROM user_tokens WHERE user_id = $1', [user.id]);
+      res.json({ user, tokens: tokensRes.rows });
+    } else {
+      res.status(401).json({ erro: 'Credenciais inválidas.' });
     }
-
-    if (user.rows[0].password !== password) {
-      return res.status(401).json({ erro: 'Senha incorreta.' });
-    }
-
-    // Buscar também os tokens deste utilizador
-    const tokens = await pool.query('SELECT marketplace, api_token FROM user_tokens WHERE user_id = $1', [user.rows[0].id]);
-
-    res.json({ 
-      mensagem: 'Login efetuado com sucesso!', 
-      user: { id: user.rows[0].id, email: user.rows[0].email },
-      tokens: tokens.rows
-    });
-  } catch (error) {
-    res.status(500).json({ erro: 'Erro ao fazer login.' });
+  } catch (err) {
+    res.status(500).json({ erro: 'Erro no servidor.' });
   }
 });
 
-// Guardar ou atualizar token de marketplace
+// Guardar Token / Conta da Loja
 app.post('/save-token', async (req, res) => {
   const { userId, marketplace, apiToken } = req.body;
   try {
-    await pool.query(`
-      INSERT INTO user_tokens (user_id, marketplace, api_token) 
-      VALUES ($1, $2, $3)
-      ON CONFLICT (user_id, marketplace) 
-      DO UPDATE SET api_token = $3
-    `, [userId, marketplace, apiToken]);
-
-    res.json({ mensagem: 'Token guardado com sucesso no banco de dados!' });
-  } catch (error) {
-    console.error(error);
+    await pool.query('DELETE FROM user_tokens WHERE user_id = $1 AND marketplace = $2', [userId, marketplace]);
+    await pool.query('INSERT INTO user_tokens (user_id, marketplace, api_token) VALUES ($1, $2, $3)', [userId, marketplace, apiToken]);
+    res.json({ sucesso: true });
+  } catch (err) {
     res.status(500).json({ erro: 'Erro ao salvar token.' });
   }
 });
 
-const PORT = process.env.PORT || 10000;
+// Publicar e Guardar Produto Sincronizado
+app.post('/publish-product', async (req, res) => {
+  const { userId, marketplace, titulo, descricao, preco, foto } = req.body;
+  try {
+    await pool.query(
+      'INSERT INTO published_products (user_id, marketplace, titulo, descricao, preco, foto) VALUES ($1, $2, $3, $4, $5, $6)',
+      [userId, marketplace, titulo, descricao, preco, foto]
+    );
+    res.json({ sucesso: true });
+  } catch (err) {
+    res.status(500).json({ erro: 'Erro ao publicar produto.' });
+  }
+});
+
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Servidor edushoping a rodar na porta ${PORT}`);
+  console.log(`Servidor rodando na porta ${PORT}`);
 });
