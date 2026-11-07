@@ -1,106 +1,423 @@
-const express = require('express');
-const { Pool } = require('pg');
-const path = require('path');
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EDUSHOPING - Criador & Precificador Multi-Marketplace</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background-color: #0b0f19; color: #fff; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    
+    .auth-container { background: #131b2e; width: 100%; max-width: 400px; padding: 30px; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.5); border: 1px solid #1e293b; }
+    h2 { text-align: center; color: #f8fafc; margin-bottom: 24px; font-weight: 600; }
+    .form-group { margin-bottom: 18px; }
+    label { display: block; font-size: 14px; font-weight: 600; color: #94a3b8; margin-bottom: 6px; }
+    input, select { width: 100%; padding: 12px; border: 1px solid #334155; background: #0f172a; color: #fff; border-radius: 6px; font-size: 14px; outline: none; transition: border-color 0.2s; }
+    input:focus, select:focus { border-color: #3b82f6; }
+    .btn-group { display: flex; gap: 10px; margin-top: 20px; }
+    button { flex: 1; padding: 12px; font-size: 14px; font-weight: bold; color: #fff; background-color: #2563eb; border: none; border-radius: 6px; cursor: pointer; transition: background-color 0.2s; }
+    button:hover { background-color: #1d4ed8; }
+    button.btn-secondary { background-color: #16a34a; }
+    button.btn-secondary:hover { background-color: #15803d; }
+    #message { margin-top: 20px; padding: 12px; border-radius: 6px; font-size: 14px; text-align: center; display: none; }
+    .success { background-color: #064e3b; color: #a7f3d0; border: 1px solid #047857; }
+    .error { background-color: #7f1d1d; color: #fecaca; border: 1px solid #b91c1c; }
 
-const app = express();
-app.use(express.json({ limit: '10mb' })); // Permitir imagens em Base64
-app.use(express.static(__dirname));
+    #dashboard { display: none; width: 100%; max-width: 1200px; background: #0b0f19; }
+    .top-bar { display: flex; justify-content: space-between; align-items: center; background: #131b2e; padding: 15px 25px; border-radius: 10px; border: 1px solid #1e293b; margin-bottom: 20px; flex-wrap: wrap; gap: 15px; }
+    .logo-area { display: flex; align-items: center; gap: 12px; }
+    .logo-badge { background: #f59e0b; color: #000; font-weight: bold; font-size: 11px; padding: 3px 8px; border-radius: 4px; }
+    .top-stats { display: flex; gap: 20px; align-items: center; font-size: 14px; color: #cbd5e1; flex-wrap: wrap; }
+    
+    .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media(max-width: 900px) { .dashboard-grid { grid-template-columns: 1fr; } }
 
-// Configuração da Base de Dados PostgreSQL (Render)
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
-});
+    .card { background: #131b2e; border: 1px solid #1e293b; border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+    .card-title { font-size: 16px; font-weight: bold; margin-bottom: 15px; color: #f8fafc; display: flex; align-items: center; gap: 8px; }
+    
+    .upload-zone { border: 2px dashed #3b82f6; background: #0f172a; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 15px; cursor: pointer; }
+    .upload-zone input { display: none; }
+    .upload-label { font-size: 13px; color: #94a3b8; cursor: pointer; display: block; }
+    .preview-box { display: none; margin-top: 10px; text-align: center; }
+    .preview-box img { max-width: 100%; max-height: 140px; border-radius: 6px; border: 1px solid #334155; }
 
-// Criar tabelas necessárias na BD ao iniciar
-async function initDB() {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS users (
-      id SERIAL PRIMARY KEY,
-      email VARCHAR(255) UNIQUE NOT NULL,
-      password VARCHAR(255) NOT NULL
-    );
-    CREATE TABLE IF NOT EXISTS user_tokens (
-      id SERIAL PRIMARY KEY,
-      user_id INT REFERENCES users(id),
-      marketplace VARCHAR(50),
-      api_token VARCHAR(255)
-    );
-    CREATE TABLE IF NOT EXISTS published_products (
-      id SERIAL PRIMARY KEY,
-      user_id INT REFERENCES users(id),
-      marketplace VARCHAR(50),
-      titulo TEXT,
-      descricao TEXT,
-      preco VARCHAR(50),
-      foto TEXT
-    );
-  `);
-  console.log("Base de dados inicializada com sucesso!");
-}
-initDB();
+    .btn-action { background: #f59e0b; color: #000; font-weight: bold; width: 100%; padding: 12px; border-radius: 6px; border: none; cursor: pointer; margin-bottom: 15px; transition: opacity 0.2s; }
+    .btn-action:hover { opacity: 0.9; }
 
-// Rota de Registo
-app.post('/register', async (req, res) => {
-  const { email, password } = req.body;
-  try {
-    const result = await pool.query(
-      'INSERT INTO users (email, password) VALUES ($1, $2) RETURNING id, email',
-      [email, password]
-    );
-    res.json({ user: result.rows[0] });
-  } catch (err) {
-    res.status(400).json({ erro: 'E-mail já registado ou erro no servidor.' });
-  }
-});
+    .textarea-box { width: 100%; background: #0f172a; border: 1px solid #334155; color: #cbd5e1; padding: 12px; border-radius: 6px; font-size: 13px; height: 100px; resize: none; margin-bottom: 15px; outline: none; }
 
-// Rota de Login
-app.post('/login', async (req, res) => {
-  const { email, password } = req.body;
-  try {
-    const result = await pool.query(
-      'SELECT id, email FROM users WHERE email = $1 AND password = $2',
-      [email, password]
-    );
-    if (result.rows.length > 0) {
-      const user = result.rows[0];
-      const tokensRes = await pool.query('SELECT marketplace, api_token FROM user_tokens WHERE user_id = $1', [user.id]);
-      res.json({ user, tokens: tokensRes.rows });
-    } else {
-      res.status(401).json({ erro: 'Credenciais inválidas.' });
+    .market-item { display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 12px 15px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #334155; }
+    .market-info { font-size: 13px; }
+    .market-name { font-weight: bold; color: #f8fafc; }
+    .market-sub { color: #94a3b8; font-size: 11px; }
+    .market-pricing { text-align: right; }
+    .profit { color: #4ade80; font-size: 12px; }
+    .price { font-weight: bold; color: #facc15; font-size: 15px; }
+
+    .btn-connect { background: #16a34a; color: #fff; border: none; padding: 6px 12px; border-radius: 4px; font-size: 11px; font-weight: bold; cursor: pointer; margin-top: 5px; }
+    .btn-connect:hover { background: #15803d; }
+    .status-connected { color: #4ade80; font-size: 11px; font-weight: bold; }
+
+    .publish-btn-area { background: #131b2e; border: 1px solid #1e293b; padding: 20px; border-radius: 10px; text-align: center; margin-bottom: 20px; }
+    .btn-publish { background: #2563eb; color: #fff; font-weight: bold; width: 100%; padding: 14px; border-radius: 6px; border: none; font-size: 15px; cursor: pointer; }
+    .btn-publish:hover { background: #1d4ed8; }
+    .btn-logout { background: #7f1d1d; color: #fecaca; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+    .btn-logout:hover { background: #991b1b; }
+
+    .products-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+    .products-table th, .products-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #1e293b; }
+    .products-table th { color: #94a3b8; font-weight: 600; background: #0f172a; }
+    .products-table td img { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; border: 1px solid #334155; }
+    .badge-shopee { background: #ea580c; color: #fff; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+  <!-- Ecrã de Login -->
+  <div class="auth-container" id="auth-box">
+    <h2>EDUSHOPING SaaS</h2>
+    
+    <div class="form-group">
+      <label for="email">E-mail</label>
+      <input type="email" id="email" placeholder="seu@email.com" required>
+    </div>
+
+    <div class="form-group">
+      <label for="password">Senha</label>
+      <input type="password" id="password" placeholder="Digite a sua senha" required>
+    </div>
+
+    <div class="btn-group">
+      <button type="button" onclick="fazerLogin()">Entrar</button>
+      <button type="button" class="btn-secondary" onclick="registar()">Criar Conta</button>
+    </div>
+
+    <div id="message"></div>
+  </div>
+
+  <!-- Painel Principal -->
+  <div id="dashboard" style="display: none;">
+    <div class="top-bar">
+      <div class="logo-area">
+        <span style="font-weight: bold; font-size: 16px;">📦 edushoping</span>
+        <span class="logo-badge">PRO AI</span>
+        <span style="font-size: 12px; color: #94a3b8; margin-left: 10px;">Gestão Multi-Marketplace</span>
+      </div>
+      <div class="top-stats">
+        <span id="stores-count" style="color: #4ade80; font-weight: bold;">🟢 Loja Ativa</span>
+        <div>
+          <label style="font-size: 11px; color: #94a3b8; display: inline;">Meta Lucro (%):</label>
+          <input type="number" id="meta-lucro-input" value="20" min="5" max="100" style="width: 60px; padding: 4px; display: inline-block; text-align: center; font-weight: bold; color: #facc15;" onchange="recalcularPrecos()">
+        </div>
+        <span id="user-email-logged" style="color: #60a5fa; font-size: 13px;"></span>
+        <button class="btn-logout" onclick="logout()">Sair</button>
+      </div>
+    </div>
+
+    <div class="dashboard-grid">
+      <div class="card">
+        <div class="card-title">📸 1. Imagem & Produto</div>
+        
+        <div class="form-group" style="margin-bottom: 12px;">
+          <label for="tipo-produto-select">TIPO DE PRODUTO A ENVIAR</label>
+          <select id="tipo-produto-select">
+            <option value="palmilha">Par de Palmilha Ortopédica em Gel</option>
+            <option value="descascador">Kit 3 Descascadores E Fatiadores Inox</option>
+          </select>
+        </div>
+
+        <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
+          <span class="upload-label">📥 Clique para selecionar a foto ou arraste o ficheiro aqui</span>
+          <input type="file" id="fileInput" accept="image/*" onchange="previewFoto(event)">
+        </div>
+
+        <div class="preview-box" id="previewContainer">
+          <img id="imgPreview" src="" alt="Pré-visualização">
+          <p style="font-size: 11px; color: #4ade80; margin-top: 4px;">✓ Imagem carregada com sucesso!</p>
+        </div>
+
+        <button class="btn-action" style="margin-top: 10px;" onclick="gerarAnuncioIA()">⚡ Gerar Anúncio Automaticamente</button>
+        
+        <div class="card-title">📝 2. Conteúdo do Anúncio (Gerado por IA)</div>
+        
+        <label style="font-size: 12px; color: #64748b;">CATEGORIA IDENTIFICADA</label>
+        <p id="cat-produto" style="font-size: 13px; color: #38bdf8; margin: 5px 0 10px 0;">Aguardando geração...</p>
+
+        <label style="font-size: 12px; color: #64748b;">TÍTULO DO ANÚNCIO (SEO)</label>
+        <input type="text" id="titulo-produto" placeholder="O título gerado aparecerá aqui..." style="margin: 5px 0 10px 0;">
+
+        <label style="font-size: 12px; color: #64748b;">DESCRIÇÃO COMERCIAL COMPLETA</label>
+        <textarea id="desc-produto" class="textarea-box" placeholder="A descrição gerada aparecerá aqui..."></textarea>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🛍️ Canais de Venda & Precificação Dinâmica</div>
+
+        <!-- Shopee -->
+        <div class="market-item">
+          <div class="market-info">
+            <div class="market-name">🟡 Shopee</div>
+            <div class="market-sub">Comissão: 20% + R$ 4.00</div>
+            <div id="box-shopee">
+              <span class="status-connected">✓ Pronto para Colar na Shopee</span>
+            </div>
+          </div>
+          <div class="market-pricing">
+            <div class="profit" id="lucro-shopee">LUCRO: R$ 3,00 (20%)</div>
+            <div class="price" id="preco-shopee">R$ 27,50</div>
+          </div>
+        </div>
+
+        <!-- Mercado Livre -->
+        <div class="market-item">
+          <div class="market-info">
+            <div class="market-name">🟡 Mercado Livre</div>
+            <div class="market-sub">Comissão: 16.5% + R$ 6.00</div>
+          </div>
+          <div class="market-pricing">
+            <div class="profit" id="lucro-ml">LUCRO: R$ 3,00 (20%)</div>
+            <div class="price" id="preco-ml">R$ 28,74</div>
+          </div>
+        </div>
+
+        <!-- Amazon -->
+        <div class="market-item">
+          <div class="market-info">
+            <div class="market-name">🔴 Amazon Brasil</div>
+            <div class="market-sub">Comissão: 15% + R$ 2.50</div>
+          </div>
+          <div class="market-pricing">
+            <div class="profit" id="lucro-amz">LUCRO: R$ 3,00 (20%)</div>
+            <div class="price" id="preco-amz">R$ 24,12</div>
+          </div>
+        </div>
+
+        <!-- Magalu -->
+        <div class="market-item">
+          <div class="market-info">
+            <div class="market-name">🔵 Magazine Luiza</div>
+            <div class="market-sub">Comissão: 18% + R$ 3.00</div>
+          </div>
+          <div class="market-pricing">
+            <div class="profit" id="lucro-magalu">LUCRO: R$ 3,00 (20%)</div>
+            <div class="price" id="preco-magalu">R$ 25,61</div>
+          </div>
+        </div>
+
+        <!-- TikTok Shop -->
+        <div class="market-item">
+          <div class="market-info">
+            <div class="market-name">⚫ TikTok Shop</div>
+            <div class="market-sub">Comissão: 5% + R$ 2.00</div>
+          </div>
+          <div class="market-pricing">
+            <div class="profit" id="lucro-tiktok">LUCRO: R$ 3,00 (20%)</div>
+            <div class="price" id="preco-tiktok">R$ 21,05</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="publish-btn-area">
+      <div style="font-size: 13px; color: #94a3b8; margin-bottom: 10px;">🚀 Cópia Automática Inteligente — Copia título, descrição e preço para colar na Shopee com 1 clique</div>
+      <button class="btn-publish" onclick="copiarParaShopee()">📋 Copiar Dados Completos para a Shopee</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📦 Histórico de Produtos Otimizados no SaaS</div>
+      <div style="overflow-x: auto;">
+        <table class="products-table">
+          <thead>
+            <tr>
+              <th>Foto</th>
+              <th>Nome do Produto</th>
+              <th>Marketplace</th>
+              <th>Preço Venda</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="lista-produtos-ativos">
+            <tr>
+              <td colspan="5" style="text-align: center; color: #64748b; padding: 20px;">Nenhum produto copiado ainda.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let loggedUserId = null;
+    let imagemCarregada = false;
+    let ultimaImagemSrc = "";
+    let produtosPublicados = [];
+
+    function previewFoto(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          ultimaImagemSrc = e.target.result;
+          document.getElementById('imgPreview').src = ultimaImagemSrc;
+          document.getElementById('previewContainer').style.display = 'block';
+          imagemCarregada = true;
+        }
+        reader.readAsDataURL(file);
+      }
     }
-  } catch (err) {
-    res.status(500).json({ erro: 'Erro no servidor.' });
-  }
-});
 
-// Guardar Token / Conta da Loja
-app.post('/save-token', async (req, res) => {
-  const { userId, marketplace, apiToken } = req.body;
-  try {
-    await pool.query('DELETE FROM user_tokens WHERE user_id = $1 AND marketplace = $2', [userId, marketplace]);
-    await pool.query('INSERT INTO user_tokens (user_id, marketplace, api_token) VALUES ($1, $2, $3)', [userId, marketplace, apiToken]);
-    res.json({ sucesso: true });
-  } catch (err) {
-    res.status(500).json({ erro: 'Erro ao salvar token.' });
-  }
-});
+    function gerarAnuncioIA() {
+      if (!imagemCarregada) {
+        alert('Por favor, faça o upload de uma foto de produto primeiro!');
+        return;
+      }
 
-// Publicar e Guardar Produto Sincronizado
-app.post('/publish-product', async (req, res) => {
-  const { userId, marketplace, titulo, descricao, preco, foto } = req.body;
-  try {
-    await pool.query(
-      'INSERT INTO published_products (user_id, marketplace, titulo, descricao, preco, foto) VALUES ($1, $2, $3, $4, $5, $6)',
-      [userId, marketplace, titulo, descricao, preco, foto]
-    );
-    res.json({ sucesso: true });
-  } catch (err) {
-    res.status(500).json({ erro: 'Erro ao publicar produto.' });
-  }
-});
+      const tipo = document.getElementById('tipo-produto-select').value;
+      if (tipo === 'palmilha') {
+        document.getElementById('cat-produto').innerText = "Calçados, Roupas e Bolsas > Acessórios > Palmilhas";
+        document.getElementById('titulo-produto').value = "Par de Palmilha Ortopédica em Gel Conforto Amortecimento Impacto";
+        document.getElementById('desc-produto').value = "Alivie as dores nos pés e tenha máximo conforto o dia todo!\nEsta palmilha ortopédica em gel absorve o impacto de cada pisada, ideal para sapatos do dia a dia, trabalho ou prática de esportes.";
+      } else {
+        document.getElementById('cat-produto').innerText = "Casa, Móveis e Decoração > Cozinha > Utensílios de Cozinha";
+        document.getElementById('titulo-produto').value = "Kit 3 Descascadores E Fatiadores De Legumes Frutas Aço Inox";
+        document.getElementById('desc-produto').value = "Facilite o preparo das suas refeições com este incrível Kit de Descascadores e Fatiadores em Aço Inox.\nPrático, durável e com lâminas extremamente afiadas para descascar legumes e frutas com rapidez e segurança.";
+      }
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
-});
+      recalcularPrecos();
+    }
+
+    function recalcularPrecos() {
+      const margemPct = parseFloat(document.getElementById('meta-lucro-input').value) || 20;
+      const custoBase = 15.00;
+
+      const canais = [
+        { id: 'shopee', comissaoPct: 0.20, taxaFixa: 4.00 },
+        { id: 'ml', comissaoPct: 0.165, taxaFixa: 6.00 },
+        { id: 'amz', comissaoPct: 0.15, taxaFixa: 2.50 },
+        { id: 'magalu', comissaoPct: 0.18, taxaFixa: 3.00 },
+        { id: 'tiktok', comissaoPct: 0.05, taxaFixa: 2.00 }
+      ];
+
+      canais.forEach(c => {
+        const lucroDesejado = custoBase * (margemPct / 100);
+        const precoVenda = (custoBase + c.taxaFixa + lucroDesejado) / (1 - c.comissaoPct);
+        const lucroLiquido = precoVenda - (precoVenda * c.comissaoPct) - c.taxaFixa - custoBase;
+
+        document.getElementById(`preco-${c.id}`).innerText = `R$ ${precoVenda.toFixed(2).replace('.', ',')}`;
+        document.getElementById(`lucro-${c.id}`).innerText = `LUCRO: R$ ${lucroLiquido.toFixed(2).replace('.', ',')} (${margemPct}%)`;
+      });
+    }
+
+    function copiarParaShopee() {
+      if (!imagemCarregada) {
+        alert('Por favor, faça o upload de uma imagem e clique em "Gerar Anúncio Automaticamente" primeiro.');
+        return;
+      }
+
+      const titulo = document.getElementById('titulo-produto').value;
+      const descricao = document.getElementById('desc-produto').value;
+      const precoShopee = document.getElementById('preco-shopee').innerText;
+      const margemPct = document.getElementById('meta-lucro-input').value;
+
+      const textoCompleto = `=== TÍTULO PARA A SHOPEE ===\n${titulo}\n\n=== PREÇO DE VENDA (${margemPct}% LUCRO) ===\n${precoShopee}\n\n=== DESCRIÇÃO COMERCIAL ===\n${descricao}`;
+
+      navigator.clipboard.writeText(textoCompleto).then(() => {
+        produtosPublicados.push({
+          foto: ultimaImagemSrc,
+          titulo: titulo,
+          marketplace: "Shopee",
+          preco: precoShopee
+        });
+        renderizarTabelaProdutos();
+        alert('Sucesso! O título, o preço e a descrição foram copiados para a sua área de transferência. Agora basta ir à Shopee e colar (Ctrl + V)!');
+      }).catch(err => {
+        alert('Erro ao copiar dados para a área de transferência.');
+      });
+    }
+
+    function renderizarTabelaProdutos() {
+      const tbody = document.getElementById('lista-produtos-ativos');
+      if (produtosPublicados.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #64748b; padding: 20px;">Nenhum produto copiado ainda.</td></tr>`;
+        return;
+      }
+
+      let html = "";
+      produtosPublicados.forEach(p => {
+        html += `
+          <tr>
+            <td><img src="${p.foto}" alt="Produto"></td>
+            <td style="font-weight: 600; color: #f8fafc;">${p.titulo}</td>
+            <td><span class="badge-shopee">${p.marketplace}</span></td>
+            <td style="color: #facc15; font-weight: bold;">${p.preco}</td>
+            <td><span style="color: #4ade80; font-weight: bold;">● Copiado para Anúncio</span></td>
+          </tr>
+        `;
+      });
+      tbody.innerHTML = html;
+    }
+
+    async function registar() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      if (!email || !password) { exibirMensagem('Preencha email e senha.', 'error'); return; }
+
+      try {
+        const res = await fetch('/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+        if (res.ok) { entrarNoSistema(data.user.id, data.user.email); }
+        else { exibirMensagem(data.erro || 'Erro ao registar.', 'error'); }
+      } catch (err) { exibirMensagem('Erro de conexão.', 'error'); }
+    }
+
+    async function fazerLogin() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      if (!email || !password) { exibirMensagem('Preencha email e senha.', 'error'); return; }
+
+      try {
+        const res = await fetch('/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          entrarNoSistema(data.user.id, data.user.email);
+        } else {
+          exibirMensagem(data.erro || 'Credenciais inválidas.', 'error');
+        }
+      } catch (err) { exibirMensagem('Erro de conexão.', 'error'); }
+    }
+
+    function entrarNoSistema(id, email) {
+      loggedUserId = id;
+      document.getElementById('auth-box').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'block';
+      document.getElementById('user-email-logged').innerText = email;
+      recalcularPrecos();
+    }
+
+    function logout() {
+      loggedUserId = null;
+      document.getElementById('dashboard').style.display = 'none';
+      document.getElementById('auth-box').style.display = 'block';
+      document.getElementById('message').style.display = 'none';
+      document.getElementById('email').value = '';
+      document.getElementById('password').value = '';
+    }
+
+    function exibirMensagem(texto, tipo) {
+      const msgDiv = document.getElementById('message');
+      msgDiv.innerText = texto;
+      msgDiv.className = tipo;
+      msgDiv.style.display = 'block';
+    }
+  </script>
+
+</body>
+</html>
