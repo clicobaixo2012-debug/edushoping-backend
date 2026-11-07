@@ -12,8 +12,8 @@
     h2 { text-align: center; color: #f8fafc; margin-bottom: 24px; font-weight: 600; }
     .form-group { margin-bottom: 18px; }
     label { display: block; font-size: 14px; font-weight: 600; color: #94a3b8; margin-bottom: 6px; }
-    input { width: 100%; padding: 12px; border: 1px solid #334155; background: #0f172a; color: #fff; border-radius: 6px; font-size: 14px; outline: none; transition: border-color 0.2s; }
-    input:focus { border-color: #3b82f6; }
+    input, select { width: 100%; padding: 12px; border: 1px solid #334155; background: #0f172a; color: #fff; border-radius: 6px; font-size: 14px; outline: none; transition: border-color 0.2s; }
+    input:focus, select:focus { border-color: #3b82f6; }
     .btn-group { display: flex; gap: 10px; margin-top: 20px; }
     button { flex: 1; padding: 12px; font-size: 14px; font-weight: bold; color: #fff; background-color: #2563eb; border: none; border-radius: 6px; cursor: pointer; transition: background-color 0.2s; }
     button:hover { background-color: #1d4ed8; }
@@ -40,6 +40,9 @@
     .upload-label { font-size: 13px; color: #94a3b8; cursor: pointer; display: block; }
     .preview-box { display: none; margin-top: 10px; text-align: center; }
     .preview-box img { max-width: 100%; max-height: 140px; border-radius: 6px; border: 1px solid #334155; }
+
+    .btn-action { background: #f59e0b; color: #000; font-weight: bold; width: 100%; padding: 12px; border-radius: 6px; border: none; cursor: pointer; margin-bottom: 15px; transition: opacity 0.2s; }
+    .btn-action:hover { opacity: 0.9; }
 
     .textarea-box { width: 100%; background: #0f172a; border: 1px solid #334155; color: #cbd5e1; padding: 12px; border-radius: 6px; font-size: 13px; height: 100px; resize: none; margin-bottom: 15px; outline: none; }
 
@@ -70,7 +73,7 @@
 </head>
 <body>
 
-  <!-- Ecrã de Login / Registo -->
+  <!-- Ecrã de Login -->
   <div class="auth-container" id="auth-box">
     <h2>EDUSHOPING SaaS</h2>
     
@@ -92,7 +95,7 @@
     <div id="message"></div>
   </div>
 
-  <!-- Painel Principal do SaaS -->
+  <!-- Painel Principal -->
   <div id="dashboard" style="display: none;">
     <div class="top-bar">
       <div class="logo-area">
@@ -113,28 +116,38 @@
 
     <div class="dashboard-grid">
       <div class="card">
-        <div class="card-title">📸 1. Imagem do Produto (Fundo Limpo)</div>
+        <div class="card-title">📸 1. Imagem & Produto</div>
         
+        <div class="form-group" style="margin-bottom: 12px;">
+          <label for="tipo-produto-select">TIPO DE PRODUTO A ENVIAR</label>
+          <select id="tipo-produto-select">
+            <option value="palmilha">Par de Palmilha Ortopédica em Gel</option>
+            <option value="descascador">Kit 3 Descascadores E Fatiadores Inox</option>
+          </select>
+        </div>
+
         <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
-          <span class="upload-label">📥 Clique para selecionar a foto do produto ou arraste o ficheiro aqui</span>
+          <span class="upload-label">📥 Clique para selecionar a foto ou arraste o ficheiro aqui</span>
           <input type="file" id="fileInput" accept="image/*" onchange="previewFoto(event)">
         </div>
 
         <div class="preview-box" id="previewContainer">
           <img id="imgPreview" src="" alt="Pré-visualização">
-          <p style="font-size: 11px; color: #4ade80; margin-top: 4px;">⚡ IA: Imagem processada e anúncio gerado automaticamente!</p>
+          <p style="font-size: 11px; color: #4ade80; margin-top: 4px;">✓ Imagem carregada com sucesso!</p>
         </div>
+
+        <button class="btn-action" style="margin-top: 10px;" onclick="gerarAnuncioIA()">⚡ Gerar Anúncio Automaticamente</button>
         
-        <div class="card-title" style="margin-top: 15px;">📝 2. Conteúdo do Anúncio (Gerado por IA)</div>
+        <div class="card-title">📝 2. Conteúdo do Anúncio (Gerado por IA)</div>
         
         <label style="font-size: 12px; color: #64748b;">CATEGORIA IDENTIFICADA</label>
-        <p id="cat-produto" style="font-size: 13px; color: #38bdf8; margin: 5px 0 10px 0;">Aguardando upload da imagem...</p>
+        <p id="cat-produto" style="font-size: 13px; color: #38bdf8; margin: 5px 0 10px 0;">Aguardando geração...</p>
 
         <label style="font-size: 12px; color: #64748b;">TÍTULO DO ANÚNCIO (SEO)</label>
         <input type="text" id="titulo-produto" placeholder="O título gerado aparecerá aqui..." style="margin: 5px 0 10px 0;">
 
         <label style="font-size: 12px; color: #64748b;">DESCRIÇÃO COMERCIAL COMPLETA</label>
-        <textarea id="desc-produto" class="textarea-box" placeholder="A descrição detalhada gerada aparecerá aqui..."></textarea>
+        <textarea id="desc-produto" class="textarea-box" placeholder="A descrição gerada aparecerá aqui..."></textarea>
       </div>
 
       <div class="card">
@@ -261,16 +274,29 @@
           document.getElementById('imgPreview').src = ultimaImagemSrc;
           document.getElementById('previewContainer').style.display = 'block';
           imagemCarregada = true;
-          
-          // Preenchimento automático e limpo sem pop-ups!
-          document.getElementById('cat-produto').innerText = "Casa, Móveis e Decoração > Cozinha > Utensílios de Cozinha";
-          document.getElementById('titulo-produto').value = "Kit 3 Descascadores E Fatiadores De Legumes Frutas Aço Inox";
-          document.getElementById('desc-produto').value = "Facilite o preparo das suas refeições com este incrível Kit de Descascadores e Fatiadores em Aço Inox.\nPrático, durável e com lâminas extremamente afiadas para descascar legumes e frutas com rapidez e segurança.";
-          
-          recalcularPrecos();
         }
         reader.readAsDataURL(file);
       }
+    }
+
+    function gerarAnuncioIA() {
+      if (!imagemCarregada) {
+        alert('Por favor, faça o upload de uma foto de produto primeiro!');
+        return;
+      }
+
+      const tipo = document.getElementById('tipo-produto-select').value;
+      if (tipo === 'palmilha') {
+        document.getElementById('cat-produto').innerText = "Calçados, Roupas e Bolsas > Acessórios > Palmilhas";
+        document.getElementById('titulo-produto').value = "Par de Palmilha Ortopédica em Gel Conforto Amortecimento Impacto";
+        document.getElementById('desc-produto').value = "Alivie as dores nos pés e tenha máximo conforto o dia todo!\nEsta palmilha ortopédica em gel absorve o impacto de cada pisada, ideal para sapatos do dia a dia, trabalho ou prática de esportes.";
+      } else {
+        document.getElementById('cat-produto').innerText = "Casa, Móveis e Decoração > Cozinha > Utensílios de Cozinha";
+        document.getElementById('titulo-produto').value = "Kit 3 Descascadores E Fatiadores De Legumes Frutas Aço Inox";
+        document.getElementById('desc-produto').value = "Facilite o preparo das suas refeições com este incrível Kit de Descascadores e Fatiadores em Aço Inox.\nPrático, durável e com lâminas extremamente afiadas para descascar legumes e frutas com rapidez e segurança.";
+      }
+
+      recalcularPrecos();
     }
 
     function recalcularPrecos() {
@@ -426,7 +452,6 @@
 
     function entrarNoSistema(id, email, tokens) {
       loggedUserId = id;
-      // Esconde o login e mostra o dashboard corretamente
       document.getElementById('auth-box').style.display = 'none';
       document.getElementById('dashboard').style.display = 'block';
       document.getElementById('user-email-logged').innerText = email;
