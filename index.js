@@ -15,17 +15,26 @@ const pool = new Pool({
   }
 });
 
+// Criar tabelas necessárias
 pool.query(`
   CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     email VARCHAR(255) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  )
+  );
+
+  CREATE TABLE IF NOT EXISTS user_tokens (
+    id SERIAL PRIMARY KEY,
+    user_id INT REFERENCES users(id) ON DELETE CASCADE,
+    marketplace VARCHAR(50) NOT NULL,
+    api_token VARCHAR(255) NOT NULL,
+    UNIQUE(user_id, marketplace)
+  );
 `).then(() => {
-  console.log("Tabela 'users' verificada/criada com sucesso!");
+  console.log("Tabelas 'users' e 'user_tokens' verificadas/criadas com sucesso!");
 }).catch(err => {
-  console.error("Erro ao criar tabela:", err);
+  console.error("Erro ao criar tabelas:", err);
 });
 
 app.get('/', (req, res) => {
@@ -59,9 +68,34 @@ app.post('/login', async (req, res) => {
       return res.status(401).json({ erro: 'Senha incorreta.' });
     }
 
-    res.json({ mensagem: 'Login efetuado com sucesso!', user: { id: user.rows[0].id, email: user.rows[0].email } });
+    // Buscar também os tokens deste utilizador
+    const tokens = await pool.query('SELECT marketplace, api_token FROM user_tokens WHERE user_id = $1', [user.rows[0].id]);
+
+    res.json({ 
+      mensagem: 'Login efetuado com sucesso!', 
+      user: { id: user.rows[0].id, email: user.rows[0].email },
+      tokens: tokens.rows
+    });
   } catch (error) {
     res.status(500).json({ erro: 'Erro ao fazer login.' });
+  }
+});
+
+// Guardar ou atualizar token de marketplace
+app.post('/save-token', async (req, res) => {
+  const { userId, marketplace, apiToken } = req.body;
+  try {
+    await pool.query(`
+      INSERT INTO user_tokens (user_id, marketplace, api_token) 
+      VALUES ($1, $2, $3)
+      ON CONFLICT (user_id, marketplace) 
+      DO UPDATE SET api_token = $3
+    `, [userId, marketplace, apiToken]);
+
+    res.json({ mensagem: 'Token guardado com sucesso no banco de dados!' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ erro: 'Erro ao salvar token.' });
   }
 });
 
