@@ -1,10 +1,13 @@
 const express = require('express');
 const { Pool } = require('pg');
+const path = require('path');
 
 const app = express();
-app.use(express.json());
 
-// Configuração da conexão com o PostgreSQL usando a variável do Render
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static(__dirname));
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
@@ -12,7 +15,6 @@ const pool = new Pool({
   }
 });
 
-// Criar a tabela de utilizadores automaticamente ao iniciar
 pool.query(`
   CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
@@ -26,12 +28,10 @@ pool.query(`
   console.error("Erro ao criar tabela:", err);
 });
 
-// Rota de Teste
 app.get('/', (req, res) => {
-  res.send('Servidor edushoping a rodar com sucesso e ligado ao Banco de Dados!');
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Rota de Registo de Utilizador
 app.post('/register', async (req, res) => {
   const { email, password } = req.body;
   try {
@@ -39,30 +39,29 @@ app.post('/register', async (req, res) => {
       'INSERT INTO users (email, password) VALUES ($1, $2) RETURNING id, email, created_at',
       [email, password]
     );
-    res.status(201).json({ message: 'Utilizador registado com sucesso!', user: newUser.rows[0] });
+    res.status(201).json({ mensagem: 'Utilizador registado com sucesso!', user: newUser.rows[0] });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Erro ao registar utilizador (talvez o email já exista).' });
+    res.status(500).json({ erro: 'Erro ao registar utilizador (talvez o email já exista).' });
   }
 });
 
-// Rota de Login de Utilizador
 app.post('/login', async (req, res) => {
   const { email, password } = req.body;
   try {
     const user = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
     
     if (user.rows.length === 0) {
-      return res.status(404).json({ error: 'Utilizador não encontrado.' });
+      return res.status(404).json({ erro: 'Utilizador não encontrado.' });
     }
 
     if (user.rows[0].password !== password) {
-      return res.status(401).json({ error: 'Senha incorreta.' });
+      return res.status(401).json({ erro: 'Senha incorreta.' });
     }
 
-    res.json({ message: 'Login efetuado com sucesso!', user: { id: user.rows[0].id, email: user.rows[0].email } });
+    res.json({ mensagem: 'Login efetuado com sucesso!', user: { id: user.rows[0].id, email: user.rows[0].email } });
   } catch (error) {
-    res.status(500).json({ error: 'Erro ao fazer login.' });
+    res.status(500).json({ erro: 'Erro ao fazer login.' });
   }
 });
 
