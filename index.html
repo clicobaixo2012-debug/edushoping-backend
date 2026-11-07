@@ -54,6 +54,8 @@
     .profit { color: #4ade80; font-size: 12px; }
     .price { font-weight: bold; color: #facc15; font-size: 15px; }
 
+    .btn-connect { background: #e11d48; color: #fff; border: none; padding: 6px 12px; border-radius: 4px; font-size: 11px; font-weight: bold; cursor: pointer; margin-top: 5px; }
+    .btn-connect:hover { background: #be123c; }
     .status-connected { color: #4ade80; font-size: 11px; font-weight: bold; }
 
     .publish-btn-area { background: #131b2e; border: 1px solid #1e293b; padding: 20px; border-radius: 10px; text-align: center; margin-bottom: 20px; }
@@ -102,7 +104,7 @@
         <span style="font-size: 12px; color: #94a3b8; margin-left: 10px;">Gestão Multi-Marketplace</span>
       </div>
       <div class="top-stats">
-        <span style="color: #4ade80; font-weight: bold;">🟢 Loja Ativa</span>
+        <span id="stores-count" style="color: #f87171; font-weight: bold;">🔴 0 de 1 Loja Shopee</span>
         <div>
           <label style="font-size: 11px; color: #94a3b8; display: inline;">Meta Lucro (%):</label>
           <input type="number" id="meta-lucro-input" value="20" min="5" max="100" style="width: 60px; padding: 4px; display: inline-block; text-align: center; font-weight: bold; color: #facc15;" onchange="recalcularPrecos()">
@@ -151,13 +153,13 @@
       <div class="card">
         <div class="card-title">🛍️ Canais de Venda & Precificação Dinâmica</div>
 
-        <!-- Shopee -->
+        <!-- Shopee API Integration -->
         <div class="market-item">
           <div class="market-info">
-            <div class="market-name">🟡 Shopee</div>
+            <div class="market-name">🟡 Shopee (API Oficial)</div>
             <div class="market-sub">Comissão: 20% + R$ 4.00</div>
-            <div>
-              <span class="status-connected">✓ Pronto para Colar na Shopee</span>
+            <div id="box-shopee">
+              <button class="btn-connect" onclick="conectarShopeeAPI()">🔗 Conectar Loja Shopee (API)</button>
             </div>
           </div>
           <div class="market-pricing">
@@ -217,12 +219,12 @@
     </div>
 
     <div class="publish-btn-area">
-      <div style="font-size: 13px; color: #94a3b8; margin-bottom: 10px;">🚀 Cópia Automática Inteligente — Copia título, descrição e preço para colar na Shopee com 1 clique</div>
-      <button class="btn-publish" onclick="copiarParaShopee()">📋 Copiar Dados Completos para a Shopee</button>
+      <div style="font-size: 13px; color: #94a3b8; margin-bottom: 10px;">🚀 Integração Direta Shopee Open API — O anúncio é enviado diretamente para a sua Central do Vendedor</div>
+      <button class="btn-publish" onclick="publicarDiretoShopeeAPI()">⚡ Publicar Direto na Central da Shopee</button>
     </div>
 
     <div class="card">
-      <div class="card-title">📦 Histórico de Produtos Otimizados no SaaS</div>
+      <div class="card-title">📦 Histórico de Produtos Publicados via API</div>
       <div style="overflow-x: auto;">
         <table class="products-table">
           <thead>
@@ -231,12 +233,12 @@
               <th>Nome do Produto</th>
               <th>Marketplace</th>
               <th>Preço Venda</th>
-              <th>Status</th>
+              <th>Status API</th>
             </tr>
           </thead>
           <tbody id="lista-produtos-ativos">
             <tr>
-              <td colspan="5" style="text-align: center; color: #64748b; padding: 20px;">Nenhum produto copiado ainda.</td>
+              <td colspan="5" style="text-align: center; color: #64748b; padding: 20px;">Nenhum produto publicado via API ainda.</td>
             </tr>
           </tbody>
         </table>
@@ -246,6 +248,7 @@
 
   <script>
     let loggedUserId = null;
+    let shopeeConectada = false;
     let imagemCarregada = false;
     let ultimaImagemSrc = "";
     let produtosPublicados = [];
@@ -306,37 +309,82 @@
       });
     }
 
-    function copiarParaShopee() {
+    async function conectarShopeeAPI() {
+      const shopId = prompt("Digite o seu Shop ID da Shopee ou Token de Acesso da API:");
+      if (shopId && shopId.trim() !== "") {
+        try {
+          const res = await fetch('/save-shopee-token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: loggedUserId, shopToken: shopId.trim() })
+          });
+
+          if (res.ok) {
+            shopeeConectada = true;
+            document.getElementById('box-shopee').innerHTML = `<span class="status-connected">✓ API Conectada (${shopId.trim()})</span>`;
+            document.getElementById('stores-count').style.color = '#4ade80';
+            document.getElementById('stores-count').innerText = '🟢 1 de 1 Loja Shopee';
+            alert('Loja Shopee conectada via API com sucesso!');
+          } else {
+            alert('Erro ao guardar o token da Shopee no servidor.');
+          }
+        } catch (err) {
+          alert('Erro de conexão ao conectar com a API.');
+        }
+      }
+    }
+
+    async function publicarDiretoShopeeAPI() {
+      if (!shopeeConectada) {
+        alert('Atenção: É necessário conectar a sua loja Shopee via API primeiro clicando em "Conectar Loja Shopee (API)".');
+        return;
+      }
       if (!imagemCarregada) {
-        alert('Por favor, faça o upload de uma imagem e clique em "Gerar Anúncio Automaticamente" primeiro.');
+        alert('Por favor, faça o upload de uma imagem e gere o anúncio primeiro.');
         return;
       }
 
       const titulo = document.getElementById('titulo-produto').value;
       const descricao = document.getElementById('desc-produto').value;
       const precoShopee = document.getElementById('preco-shopee').innerText;
-      const margemPct = document.getElementById('meta-lucro-input').value;
+      const categoria = document.getElementById('cat-produto').innerText;
 
-      const textoCompleto = `=== TÍTULO PARA A SHOPEE ===\n${titulo}\n\n=== PREÇO DE VENDA (${margemPct}% LUCRO) ===\n${precoShopee}\n\n=== DESCRIÇÃO COMERCIAL ===\n${descricao}`;
-
-      navigator.clipboard.writeText(textoCompleto).then(() => {
-        produtosPublicados.push({
-          foto: ultimaImagemSrc,
-          titulo: titulo,
-          marketplace: "Shopee",
-          preco: precoShopee
+      try {
+        const res = await fetch('/publish-shopee-api', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: loggedUserId,
+            titulo: titulo,
+            descricao: descricao,
+            preco: precoShopee,
+            categoria: categoria,
+            foto: ultimaImagemSrc
+          })
         });
-        renderizarTabelaProdutos();
-        alert('Sucesso! O título, o preço e a descrição foram copiados para a sua área de transferência. Agora basta ir à Shopee e colar (Ctrl + V)!');
-      }).catch(err => {
-        alert('Erro ao copiar dados para a área de transferência.');
-      });
+
+        const data = await res.json();
+        if (res.ok) {
+          produtosPublicados.push({
+            foto: ultimaImagemSrc,
+            titulo: titulo,
+            marketplace: "Shopee (API)",
+            preco: precoShopee
+          });
+          renderizarTabelaProdutos();
+          alert('Sucesso absoluto! O produto foi enviado diretamente para a Central do Vendedor da Shopee via API oficial!');
+        } else {
+          alert('Erro na API da Shopee: ' + (data.erro || 'Falha ao injetar produto.'));
+        }
+      } catch (err) {
+        alert('Erro de comunicação com o servidor para envio via API.');
+      }
     }
 
     function renderizarTabelaProdutos() {
       const tbody = document.getElementById('lista-produtos-ativos');
       if (produtosPublicados.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #64748b; padding: 20px;">Nenhum produto copiado ainda.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #64748b; padding: 20px;">Nenhum produto publicado via API ainda.</td></tr>`;
         return;
       }
 
@@ -348,7 +396,7 @@
             <td style="font-weight: 600; color: #f8fafc;">${p.titulo}</td>
             <td><span class="badge-shopee">${p.marketplace}</span></td>
             <td style="color: #facc15; font-weight: bold;">${p.preco}</td>
-            <td><span style="color: #4ade80; font-weight: bold;">● Copiado para Anúncio</span></td>
+            <td><span style="color: #4ade80; font-weight: bold;">● Publicado na Shopee</span></td>
           </tr>
         `;
       });
@@ -367,7 +415,7 @@
           body: JSON.stringify({ email, password })
         });
         const data = await res.json();
-        if (res.ok) { entrarNoSistema(data.user.id, data.user.email); }
+        if (res.ok) { entrarNoSistema(data.user.id, data.user.email, false); }
         else { exibirMensagem(data.erro || 'Erro ao registar.', 'error'); }
       } catch (err) { exibirMensagem('Erro de conexão.', 'error'); }
     }
@@ -385,23 +433,31 @@
         });
         const data = await res.json();
         if (res.ok) {
-          entrarNoSistema(data.user.id, data.user.email);
+          entrarNoSistema(data.user.id, data.user.email, data.hasShopeeToken);
         } else {
           exibirMensagem(data.erro || 'Credenciais inválidas.', 'error');
         }
       } catch (err) { exibirMensagem('Erro de conexão.', 'error'); }
     }
 
-    function entrarNoSistema(id, email) {
+    function entrarNoSistema(id, email, hasToken) {
       loggedUserId = id;
       document.getElementById('auth-box').style.display = 'none';
       document.getElementById('dashboard').style.display = 'block';
       document.getElementById('user-email-logged').innerText = email;
+
+      if (hasToken) {
+        shopeeConectada = true;
+        document.getElementById('box-shopee').innerHTML = `<span class="status-connected">✓ API Conectada</span>`;
+        document.getElementById('stores-count').style.color = '#4ade80';
+        document.getElementById('stores-count').innerText = '🟢 1 de 1 Loja Shopee';
+      }
       recalcularPrecos();
     }
 
     function logout() {
       loggedUserId = null;
+      shopeeConectada = false;
       document.getElementById('dashboard').style.display = 'none';
       document.getElementById('auth-box').style.display = 'block';
       document.getElementById('message').style.display = 'none';
