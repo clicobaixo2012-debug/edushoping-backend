@@ -32,7 +32,9 @@ app.get('/', (req, res) => {
         .btn-submit { background-color: #10b981; color: white; }
         button:hover { opacity: 0.9; transform: translateY(-1px); }
         .result-box { background: #334155; padding: 12px; border-radius: 6px; margin-top: 10px; text-align: center; font-size: 1.1rem; color: #38bdf8; font-weight: bold; }
-        .image-preview { width: 100%; max-height: 250px; object-fit: contain; margin-top: 10px; border-radius: 6px; display: none; border: 1px dashed #6366f1; }
+        .image-preview-container { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+        .image-preview { width: 70px; height: 70px; object-fit: cover; border-radius: 6px; border: 1px dashed #6366f1; display: none; }
+        .status-files { font-size: 0.8rem; color: #38bdf8; margin-top: 4px; }
         
         /* Estilos da Seleção de Plataformas */
         .platforms-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 8px; }
@@ -56,9 +58,14 @@ app.get('/', (req, res) => {
         <div class="section">
           <h3>2. Gerar Anúncio & Precificação</h3>
           
-          <label>Foto do Produto</label>
-          <input type="file" id="foto" accept="image/*" onchange="mostrarPreview(event)">
-          <img id="previewImg" class="image-preview" alt="Pré-visualização da imagem">
+          <label>Fotos do Produto (Mínimo 4 imagens)</label>
+          <input type="file" id="fotos" accept="image/*" multiple onchange="mostrarPreviews(event)">
+          <div class="status-files" id="statusFotos">Nenhuma imagem selecionada (Mín. 4)</div>
+          <div class="image-preview-container" id="previewContainer"></div>
+
+          <label>Vídeo do Produto (Mínimo 1 vídeo)</label>
+          <input type="file" id="video" accept="video/*" onchange="mostrarStatusVideo(event)">
+          <div class="status-files" id="statusVideo">Nenhum vídeo selecionado (Mín. 1)</div>
 
           <label>Nome Base / Palavra-Chave do Produto</label>
           <input type="text" id="nomeBase" placeholder="Ex: Par de Palmilha Ortopédica em Gel">
@@ -116,18 +123,44 @@ app.get('/', (req, res) => {
       </div>
 
       <script>
-        function mostrarPreview(event) {
-          const file = event.target.files[0];
-          const img = document.getElementById('previewImg');
-          if (file) {
-            img.src = URL.createObjectURL(file);
-            img.style.display = 'block';
-            
+        function mostrarPreviews(event) {
+          const files = event.target.files;
+          const container = document.getElementById('previewContainer');
+          const status = document.getElementById('statusFotos');
+          container.innerHTML = '';
+
+          if (files.length > 0) {
+            status.innerText = \`\${files.length} imagem(ns) selecionada(s)\${files.length < 4 ? ' (Atenção: o mínimo são 4)' : ' ✅'}\`;
+            status.style.color = files.length < 4 ? '#f87171' : '#38bdf8';
+
+            for (let i = 0; i < Math.min(files.length, 6); i++) {
+              const img = document.createElement('img');
+              img.src = URL.createObjectURL(files[i]);
+              img.className = 'image-preview';
+              img.style.display = 'block';
+              container.appendChild(img);
+            }
+
             const nomeInput = document.getElementById('nomeBase');
             if (!nomeInput.value) {
-              const nomeFicheiro = file.name.replace(/\\.[^/.]+$/, "").replace(/[-_]/g, " ");
+              const nomeFicheiro = files[0].name.replace(/\\.[^/.]+$/, "").replace(/[-_]/g, " ");
               nomeInput.value = nomeFicheiro;
             }
+          } else {
+            status.innerText = 'Nenhuma imagem selecionada (Mín. 4)';
+            status.style.color = '#38bdf8';
+          }
+        }
+
+        function mostrarStatusVideo(event) {
+          const file = event.target.files[0];
+          const status = document.getElementById('statusVideo');
+          if (file) {
+            status.innerText = \`Vídeo carregado: \${file.name} ✅\`;
+            status.style.color = '#38bdf8';
+          } else {
+            status.innerText = 'Nenhum vídeo selecionado (Mín. 1)';
+            status.style.color = '#38bdf8';
           }
         }
 
@@ -152,15 +185,15 @@ app.get('/', (req, res) => {
 
         function gerarAnuncioIA() {
           let nome = document.getElementById('nomeBase').value;
-          const fileInput = document.getElementById('foto');
+          const fotosInput = document.getElementById('fotos');
 
-          if (!nome && fileInput.files.length > 0) {
-            nome = fileInput.files[0].name.replace(/\\.[^/.]+$/, "").replace(/[-_]/g, " ");
+          if (!nome && fotosInput.files.length > 0) {
+            nome = fotosInput.files[0].name.replace(/\\.[^/.]+$/, "").replace(/[-_]/g, " ");
             document.getElementById('nomeBase').value = nome;
           }
 
           if (!nome) {
-            alert('Por favor, selecione uma foto ou digite a palavra-chave do produto!');
+            alert('Por favor, selecione as fotos ou digite a palavra-chave do produto!');
             return;
           }
 
@@ -171,15 +204,28 @@ app.get('/', (req, res) => {
         }
 
         function publicarProduto() {
+          const fotosInput = document.getElementById('fotos');
+          const videoInput = document.getElementById('video');
+
+          if (!fotosInput.files || fotosInput.files.length < 4) {
+            alert('❌ Erro: É obrigatório enviar no mínimo 4 imagens do produto para publicar nas plataformas!');
+            return;
+          }
+
+          if (!videoInput.files || videoInput.files.length < 1) {
+            alert('❌ Erro: É obrigatório enviar no mínimo 1 vídeo do produto para publicar nas plataformas!');
+            return;
+          }
+
           const selecionadas = Array.from(document.querySelectorAll('.platforms-grid input[type="checkbox"]:checked'))
-                                   .map(cb => cb.value);
+                                     .map(cb => cb.value);
 
           if (selecionadas.length === 0) {
             alert('Por favor, selecione pelo menos uma plataforma para publicar!');
             return;
           }
 
-          alert('Iniciando publicação automática do anúncio em: ' + selecionadas.join(', '));
+          alert('🚀 Iniciando publicação automática do anúncio (com ' + fotosInput.files.length + ' imagens e 1 vídeo) em: ' + selecionadas.join(', '));
         }
       </script>
     </body>
@@ -200,3 +246,9 @@ app.get('/callback', (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
+```[cite: 14]
+
+### O que mudou:
+1. **Input de Fotos:** Agora aceita seleção múltipla (`multiple`) com contador em tempo real e pré-visualização das miniaturas[cite: 14].
+2. **Input de Vídeo:** Adicionado campo específico para o upload do vídeo obrigatório do produto[cite: 14].
+3. **Validação Rigorosa:** A função `publicarProduto()` valida obrigatoriamente se existem **pelo menos 4 imagens** e **1 vídeo** antes de avançar com o processo[cite: 14].
