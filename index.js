@@ -1,122 +1,128 @@
+require('dotenv').config();
 const express = require('express');
-const { Pool } = require('pg');
-const path = require('path');
+const multer = require('multer');
+const axios = require('axios');
+const crypto = require('crypto');
+const fs = require('fs');
 
 const app = express();
-app.use(express.json({ limit: '10mb' }));
+const upload = multer({ dest: 'uploads/' });
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(express.static(__dirname));
 
-// Configuração da Base de Dados PostgreSQL (Render)
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
+const SHOPEE_PARTNER_ID = parseInt(process.env.SHOPEE_PARTNER_ID || '123456');
+const SHOPEE_PARTNER_KEY = process.env.SHOPEE_PARTNER_KEY || 'sua_partner_key';
+const SHOPEE_HOST = 'https://partner.shopeemobile.com';
+
+// Memória temporária para armazenar o token OAuth ativo da loja conectada
+let dbTokens = { 
+  shopee: { access_token: '', shop_id: 0 } 
+};
+
+// Rota de Início de Login OAuth 2.0 da Shopee
+app.get('/auth/shopee', (req, res) => {
+  const path = '/api/v2/shop/auth_partner';
+  const ts = Math.floor(Date.now() / 1000);
+  
+  const sign = crypto
+    .createHmac('sha256', SHOPEE_PARTNER_KEY)
+    .update(`${SHOPEE_PARTNER_ID}${path}${ts}`)
+    .digest('hex');
+
+  const redirectUrl = `${SHOPEE_HOST}${path}?partner_id=${SHOPEE_PARTNER_ID}&timestamp=${ts}&sign=${sign}&redirect=http://localhost:3000/callback/shopee`;
+  res.redirect(redirectUrl);
 });
 
-// Criar tabelas necessárias na BD ao iniciar
-async function initDB() {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS users (
-      id SERIAL PRIMARY KEY,
-      email VARCHAR(255) UNIQUE NOT NULL,
-      password VARCHAR(255) NOT NULL
-    );
-    CREATE TABLE IF NOT EXISTS shopee_tokens (
-      id SERIAL PRIMARY KEY,
-      user_id INT REFERENCES users(id),
-      shop_token TEXT
-    );
-    CREATE TABLE IF NOT EXISTS api_published_products (
-      id SERIAL PRIMARY KEY,
-      user_id INT REFERENCES users(id),
-      titulo TEXT,
-      descricao TEXT,
-      preco TEXT,
-      foto TEXT
-    );
-  `);
-  console.log("Base de dados e tabelas da API inicializadas com sucesso!");
-}
-initDB();
+// Rota de Callback (Retorno da Autenticação OAuth da Shopee)
+app.get('/callback/shopee', async (req, res) => {
+  const { code, shop_id } = req.query;
+  const path = '/api/v2/auth/token/get';
+  const ts = Math.floor(Date.now() / 1000);
 
-// Rota de Registo
-app.post('/register', async (req, res) => {
-  const { email, password } = req.body;
+  const sign = crypto
+    .createHmac('sha256', SHOPEE_PARTNER_KEY)
+    .update(`${SHOPEE_PARTNER_ID}${path}${ts}`)
+    .digest('hex');
+
   try {
-    const result = await pool.query(
-      'INSERT INTO users (email, password) VALUES ($1, $2) RETURNING id, email',
-      [email, password]
-    );
-    res.json({ user: result.rows[0] });
+    const tokenRes = await axios.post(`${SHOPEE_HOST}${path}?partner_id=${SHOPEE_PARTNER_ID}&timestamp=${ts}&sign=${sign}`, {
+      code: code,
+      partner_id: SHOPEE_PARTNER_ID,
+      shop_id: parseInt(shop_id)
+    });
+
+    dbTokens.shopee = {
+      access_token: tokenRes.data.access_token,
+      shop_id: parseInt(shop_id)
+    };
+
+    res.send("<h2>Loja Shopee conectada com sucesso! Podes fechar esta aba e voltar ao SaaS.</h2>");
   } catch (err) {
-    res.status(400).json({ erro: 'E-mail já registado ou erro no servidor.' });
+    res.status(500).send("Erro ao obter o token de acesso da Shopee: " + (err.response?.data?.message || err.message));
   }
 });
 
-// Rota de Login
-app.post('/login', async (req, res) => {
-  const { email, password } = req.body;
+// Endpoint Principal de Publicação Direta (Faz upload da imagem para a CDN e cria o item na Shopee)
+app.post('/api/publish', upload.single('image'), async (req, res) => {
   try {
-    const result = await pool.query(
-      'SELECT id, email FROM users WHERE email = $1 AND password = $2',
-      [email, password]
-    );
-    if (result.rows.length > 0) {
-      const user = result.rows[0];
-      const tokenRes = await pool.query('SELECT shop_token FROM shopee_tokens WHERE user_id = $1', [user.id]);
-      const hasShopeeToken = tokenRes.rows.length > 0;
-      res.json({ user, hasShopeeToken });
-    } else {
-      res.status(401).json({ erro: 'Credenciais inválidas.' });
-    }
-  } catch (err) {
-    res.status(500).json({ erro: 'Erro no servidor.' });
-  }
-});
+    const { title, description, price } = req.body;
+    const { access_token, shop_id } = dbTokens.shopee;
 
-// Guardar Token da Shopee
-app.post('/save-shopee-token', async (req, res) => {
-  const { userId, shopToken } = req.body;
-  try {
-    await pool.query('DELETE FROM shopee_tokens WHERE user_id = $1', [userId]);
-    await pool.query('INSERT INTO shopee_tokens (user_id, shop_token) VALUES ($1, $2)', [userId, shopToken]);
-    res.json({ sucesso: true });
-  } catch (err) {
-    res.status(500).json({ erro: 'Erro ao salvar token da Shopee.' });
-  }
-});
-
-// Rota de Publicação Direta via API Oficial da Shopee
-app.post('/publish-shopee-api', async (req, res) => {
-  const { userId, titulo, descricao, preco, categoria, foto } = req.body;
-  try {
-    // Verificar se o utilizador tem o token da Shopee guardado
-    const tokenCheck = await pool.query('SELECT shop_token FROM shopee_tokens WHERE user_id = $1', [userId]);
-    if (tokenCheck.rows.length === 0) {
-      return res.status(400).json({ erro: 'Token da Shopee não configurado.' });
+    if (!access_token || !shop_id) {
+      return res.status(400).json({ success: false, error: 'Nenhuma loja Shopee conectada via OAuth.' });
     }
 
-    const shopToken = tokenCheck.rows[0].shop_token;
+    const ts = Math.floor(Date.now() / 1000);
 
-    // AQUI OCORRE A INTEGRAÇÃO COM O ENDPOINT OFICIAL DA SHOPEE OPEN API
-    // Simulamos/executamos a chamada real para injetar o item na Central do Vendedor usando o token do utilizador.
-    // Exemplo de payload enviado para a API da Shopee (item/add_item):
-    console.log(`[SHOPEE API] A enviar produto para a loja ID/Token: ${shopToken}`);
-    console.log(`[SHOPEE API] Título: ${titulo} | Preço: ${preco}`);
+    // PASSO 1: Enviar a imagem para a CDN da Shopee para obter o image_id
+    const FormDataLib = require('form-data');
+    const form = new FormDataLib();
+    form.append('image', fs.createReadStream(req.file.path));
 
-    // Guardar registo de sucesso do envio via API na BD interna
-    await pool.query(
-      'INSERT INTO api_published_products (user_id, titulo, descricao, preco, foto) VALUES ($1, $2, $3, $4, $5)',
-      [userId, titulo, descricao, preco, foto]
-    );
+    const pathImg = '/api/v2/product/upload_image';
+    const signImg = crypto
+      .createHmac('sha256', SHOPEE_PARTNER_KEY)
+      .update(`${SHOPEE_PARTNER_ID}${pathImg}${ts}${access_token}${shop_id}`)
+      .digest('hex');
 
-    res.json({ sucesso: true, mensagem: 'Produto injetado na Shopee com sucesso via API.' });
+    const imgRes = await axios.post(`${SHOPEE_HOST}${pathImg}?partner_id=${SHOPEE_PARTNER_ID}&timestamp=${ts}&access_token=${access_token}&shop_id=${shop_id}&sign=${signImg}`, form, {
+      headers: form.getHeaders()
+    });
+
+    // Limpar arquivo temporário local
+    fs.unlinkSync(req.file.path);
+
+    const imageId = imgRes.data.response.image_info.image_id_list[0];
+
+    // PASSO 2: Chamar o endpoint de criação de produto (add_item)
+    const pathItem = '/api/v2/product/add_item';
+    const signItem = crypto
+      .createHmac('sha256', SHOPEE_PARTNER_KEY)
+      .update(`${SHOPEE_PARTNER_ID}${pathItem}${ts}${access_token}${shop_id}`)
+      .digest('hex');
+
+    const itemRes = await axios.post(`${SHOPEE_HOST}${pathItem}?partner_id=${SHOPEE_PARTNER_ID}&timestamp=${ts}&access_token=${access_token}&shop_id=${shop_id}&sign=${signItem}`, {
+      original_price: parseFloat(price),
+      description: description,
+      item_name: title,
+      normal_stock: 10,
+      category_id: 100015,
+      images: { image_id_list: [imageId] },
+      weight: 0.5,
+      dimension: { package_length: 20, package_width: 15, package_height: 10 },
+      logistic_info: [{ logistic_id: 80001, enabled: true }]
+    });
+
+    res.json({ success: true, itemRes: itemRes.data });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ erro: 'Falha na comunicação com a API da Shopee.' });
+    console.error(err.response?.data || err.message);
+    res.status(500).json({ success: false, error: err.response?.data || err.message });
   }
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
+  console.log(`Servidor a rodar na porta ${PORT}`);
 });
