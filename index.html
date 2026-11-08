@@ -204,7 +204,8 @@
         const REDIRECT_URI_ML = window.location.origin + '/auth/mercadolivre/callback';
 
         function conectarMercadoLivre() {
-            const authUrl = `https://auth.mercadolivre.com.br/authorization?response_type=code&client_id=${CLIENT_ID_ML}&redirect_uri=${encodeURIComponent(REDIRECT_URI_ML)}`;
+            // URL corrigida sem o .br
+            const authUrl = `https://auth.mercadolivre.com/authorization?response_type=code&client_id=${CLIENT_ID_ML}&redirect_uri=${encodeURIComponent(REDIRECT_URI_ML)}`;
             window.location.href = authUrl;
         }
 
