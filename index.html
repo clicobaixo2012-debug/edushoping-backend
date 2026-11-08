@@ -2,6 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>edushoping - Central do Vendedor</title>
     <style>
         body {
@@ -12,6 +13,7 @@
             flex-direction: column;
             align-items: center;
             padding: 20px;
+            margin: 0;
         }
         .card {
             background-color: #131b2e;
@@ -21,6 +23,7 @@
             width: 100%;
             max-width: 600px;
             margin-bottom: 20px;
+            box-sizing: border-box;
         }
         h2 { font-size: 18px; margin-bottom: 15px; color: #f8fafc; }
         .form-group { margin-bottom: 15px; }
@@ -34,7 +37,7 @@
             color: #fff;
             box-sizing: border-box;
         }
-        textarea { resize: vertical; height: 80px; }
+        textarea { resize: vertical; height: 90px; }
         .platforms-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -50,6 +53,7 @@
             align-items: center;
             gap: 8px;
             font-size: 14px;
+            cursor: pointer;
         }
         .btn-primary {
             background: linear-gradient(135deg, #6366f1, #4f46e5);
@@ -62,6 +66,7 @@
             cursor: pointer;
             margin-bottom: 10px;
         }
+        .btn-primary:hover { opacity: 0.9; }
         .btn-success {
             background-color: #10b981;
             color: white;
@@ -117,14 +122,14 @@
     <div class="card">
         <h2>2. Gerar Anúncio & Precificação</h2>
 
-        <!-- Fotos do Produto (Mínimo 4) -->
+        <!-- Fotos do Produto -->
         <div class="form-group">
             <label>Fotos do Produto (Mínimo 4 imagens)</label>
             <input type="file" id="inputImagens" accept="image/*" multiple>
             <div id="previewImagens" class="preview-images"></div>
         </div>
 
-        <!-- Vídeo do Produto (Mínimo 1) -->
+        <!-- Vídeo do Produto -->
         <div class="form-group">
             <label>Vídeo do Produto (Mínimo 1 vídeo)</label>
             <input type="file" id="inputVideo" accept="video/*">
@@ -134,21 +139,21 @@
         <!-- Nome Base / Palavra-Chave -->
         <div class="form-group">
             <label>Nome Base / Palavra-Chave do Produto</label>
-            <input type="text" placeholder="Ex: Par de Palmilha Ortopédica em Gel">
+            <input type="text" id="nomeProduto" placeholder="Ex: Par de Palmilha Ortopédica em Gel">
         </div>
 
-        <button class="btn-primary">⚡ Gerar Anúncio Automático (IA)</button>
+        <button type="button" id="btnGerarIa" class="btn-primary">⚡ Gerar Anúncio Automático (IA)</button>
 
         <!-- Título do Produto SEO -->
         <div class="form-group" style="margin-top: 15px;">
             <label>Título do Produto (SEO)</label>
-            <input type="text" placeholder="Título gerado automaticamente pela IA...">
+            <input type="text" id="tituloSeo" placeholder="Título gerado automaticamente pela IA...">
         </div>
 
         <!-- Descrição Comercial -->
         <div class="form-group">
             <label>Descrição Comercial</label>
-            <textarea placeholder="Descrição comercial completa gerada pela IA..."></textarea>
+            <textarea id="descricaoComercial" placeholder="Descrição comercial completa gerada pela IA..."></textarea>
         </div>
 
         <!-- Seleção de Plataformas -->
@@ -167,28 +172,28 @@
         <div class="platforms-grid">
             <div class="form-group" style="margin-bottom:0;">
                 <label>Custo do Produto (R$)</label>
-                <input type="number" value="0.00" step="0.01">
+                <input type="number" id="custoProduto" value="0.00" step="0.01">
             </div>
             <div class="form-group" style="margin-bottom:0;">
                 <label>Lucro Desejado (%)</label>
-                <input type="number" value="30">
+                <input type="number" id="lucroDesejado" value="30">
             </div>
         </div>
 
         <div style="margin-top: 15px; margin-bottom: 15px; text-align: center; background: #0f172a; padding: 10px; border-radius: 6px; border: 1px solid #334155;">
             <span style="font-size: 13px; color: #94a3b8;">Preço de Venda Recomendado:</span>
-            <div style="font-size: 18px; font-weight: bold; color: #38bdf8;">R$ 0,00</div>
+            <div id="precoRecomendado" style="font-size: 18px; font-weight: bold; color: #38bdf8;">R$ 0,00</div>
         </div>
 
-        <button class="btn-success">⚡ Publicar nas Plataformas Selecionadas</button>
+        <button type="button" class="btn-success">⚡ Publicar nas Plataformas Selecionadas</button>
     </div>
 
     <script>
-        // Script para gerir as 4 imagens em cima e o vídeo logo abaixo
+        // Preview das 4 Imagens
         document.getElementById('inputImagens').addEventListener('change', function(e) {
             const container = document.getElementById('previewImagens');
             container.innerHTML = '';
-            const files = Array.from(e.target.files).slice(0, 4); // Limita a 4 imagens
+            const files = Array.from(e.target.files).slice(0, 4);
             files.forEach(file => {
                 const reader = new FileReader();
                 reader.onload = function(event) {
@@ -200,6 +205,7 @@
             });
         });
 
+        // Preview do Vídeo
         document.getElementById('inputVideo').addEventListener('change', function(e) {
             const container = document.getElementById('previewVideo');
             container.innerHTML = '';
@@ -211,6 +217,35 @@
                 container.appendChild(video);
             }
         });
+
+        // Botão Gerar Anúncio Automático (IA)
+        document.getElementById('btnGerarIa').addEventListener('click', function() {
+            const nome = document.getElementById('nomeProduto').value.trim();
+            if (!nome) {
+                alert('Por favor, digite o Nome Base / Palavra-Chave do Produto!');
+                return;
+            }
+
+            // Simulação da geração com a palavra-chave inserida
+            document.getElementById('tituloSeo').value = nome.toUpperCase() + ' - ALTA QUALIDADE E CONFORTO PREMIUM';
+            document.getElementById('descricaoComercial').value = 
+                '🔥 PRODUTO PREMIUM: ' + nome + '\n\n' +
+                '✅ Desenvolvido com materiais de alta durabilidade.\n' +
+                '✅ Ideal para uso diário com máximo conforto e desempenho.\n' +
+                '✅ Envio imediato e garantia total de satisfação!\n\n' +
+                'Garanta já o seu com o melhor preço do mercado!';
+        });
+
+        // Cálculo Dinâmico do Preço de Venda
+        function calcularPreco() {
+            const custo = parseFloat(document.getElementById('custoProduto').value) || 0;
+            const lucro = parseFloat(document.getElementById('lucroDesejado').value) || 0;
+            const total = custo + (custo * (lucro / 100));
+            document.getElementById('precoRecomendado').innerText = 'R$ ' + total.toFixed(2).replace('.', ',');
+        }
+
+        document.getElementById('custoProduto').addEventListener('input', calcularPreco);
+        document.getElementById('lucroDesejado').addEventListener('input', calcularPreco);
     </script>
 </body>
 </html>
