@@ -16,7 +16,7 @@ app.get('/', (req, res) => {
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>EDUSHOPING - Publicador & Precificador Shopee</title>
+      <title>EDUSHOPING - Publicador Multi-Plataformas</title>
       <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0f172a; color: #f8fafc; display: flex; justify-content: center; padding: 40px 20px; }
         .card { background-color: #1e293b; border-radius: 12px; padding: 30px; width: 100%; max-width: 600px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
@@ -33,11 +33,18 @@ app.get('/', (req, res) => {
         button:hover { opacity: 0.9; transform: translateY(-1px); }
         .result-box { background: #334155; padding: 12px; border-radius: 6px; margin-top: 10px; text-align: center; font-size: 1.1rem; color: #38bdf8; font-weight: bold; }
         .image-preview { width: 100%; max-height: 250px; object-fit: contain; margin-top: 10px; border-radius: 6px; display: none; border: 1px dashed #6366f1; }
+        
+        /* Estilos da Seleção de Plataformas */
+        .platforms-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 8px; }
+        .platform-item { background: #1e293b; border: 1px solid #475569; border-radius: 6px; padding: 10px; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: 0.2s; }
+        .platform-item:hover { border-color: #6366f1; }
+        .platform-item input[type="checkbox"] { width: 18px; height: 18px; accent-color: #ff5722; cursor: pointer; }
+        .platform-label { font-size: 0.9rem; font-weight: bold; color: #f8fafc; cursor: pointer; }
       </style>
     </head>
     <body>
       <div class="card">
-        <h1>EDUSHOPING SaaS - Shopee Manager</h1>
+        <h1>EDUSHOPING SaaS - Multi-Platform Manager</h1>
 
         <!-- 1. Autenticação -->
         <div class="section">
@@ -64,6 +71,31 @@ app.get('/', (req, res) => {
           <label>Descrição Comercial</label>
           <textarea id="descricao" rows="4" placeholder="Descrição comercial completa gerada pela IA..."></textarea>
 
+          <!-- SELEÇÃO DE PLATAFORMAS -->
+          <label>Selecione as Plataformas para Publicação</label>
+          <div class="platforms-grid">
+            <label class="platform-item">
+              <input type="checkbox" value="Shopee" checked>
+              <span class="platform-label">🟧 Shopee</span>
+            </label>
+            <label class="platform-item">
+              <input type="checkbox" value="Amazon">
+              <span class="platform-label">🟨 Amazon</span>
+            </label>
+            <label class="platform-item">
+              <input type="checkbox" value="Mercado Livre">
+              <span class="platform-label">🟨 Mercado Livre</span>
+            </label>
+            <label class="platform-item">
+              <input type="checkbox" value="Magazine Luiza">
+              <span class="platform-label">🟦 Magalu</span>
+            </label>
+            <label class="platform-item" style="grid-column: span 2;">
+              <input type="checkbox" value="TikTok Shop">
+              <span class="platform-label">⬛ TikTok Shop</span>
+            </label>
+          </div>
+
           <div class="row">
             <div class="col">
               <label>Custo do Produto (R$)</label>
@@ -79,7 +111,7 @@ app.get('/', (req, res) => {
             Preço de Venda Recomendado: R$ 0,00
           </div>
 
-          <button class="btn-submit" type="button" onclick="publicarProduto()">⚡ Publicar Direto na Shopee</button>
+          <button class="btn-submit" type="button" onclick="publicarProduto()">⚡ Publicar nas Plataformas Selecionadas</button>
         </div>
       </div>
 
@@ -91,7 +123,6 @@ app.get('/', (req, res) => {
             img.src = URL.createObjectURL(file);
             img.style.display = 'block';
             
-            // Se o campo Nome Base estiver vazio, preenche automaticamente com o nome do ficheiro (sem extensão)
             const nomeInput = document.getElementById('nomeBase');
             if (!nomeInput.value) {
               const nomeFicheiro = file.name.replace(/\\.[^/.]+$/, "").replace(/[-_]/g, " ");
@@ -109,10 +140,10 @@ app.get('/', (req, res) => {
             return;
           }
 
-          const comissaoShopee = 0.20;
+          const comissaoPadrao = 0.20;
           const taxaFixa = 4.00;
 
-          let precoVenda = (custo + taxaFixa) / (1 - comissaoShopee - margemDesejada);
+          let precoVenda = (custo + taxaFixa) / (1 - comissaoPadrao - margemDesejada);
           
           if (precoVenda < 0 || isNaN(precoVenda)) precoVenda = 0;
 
@@ -140,7 +171,15 @@ app.get('/', (req, res) => {
         }
 
         function publicarProduto() {
-          alert('Envio iniciado para a Shopee!');
+          const selecionadas = Array.from(document.querySelectorAll('.platforms-grid input[type="checkbox"]:checked'))
+                                   .map(cb => cb.value);
+
+          if (selecionadas.length === 0) {
+            alert('Por favor, selecione pelo menos uma plataforma para publicar!');
+            return;
+          }
+
+          alert('Iniciando publicação automática do anúncio em: ' + selecionadas.join(', '));
         }
       </script>
     </body>
