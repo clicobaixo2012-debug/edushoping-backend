@@ -20,6 +20,9 @@
     .btn-shopee { background: #ee4d2d; width: 100%; }
     .btn-publish { background: #16a34a; width: 100%; }
     .file-status { font-size: 11px; color: #38bdf8; margin-top: 4px; }
+    .image-preview-container { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+    .image-preview { width: 65px; height: 65px; object-fit: cover; border-radius: 6px; border: 1px dashed #6366f1; }
+    .video-preview { width: 100%; max-height: 150px; margin-top: 10px; border-radius: 6px; display: none; background: #000; }
   </style>
 </head>
 <body>
@@ -36,12 +39,14 @@
         <label>Fotos do Produto (Mínimo 4 imagens)</label>
         <input type="file" id="fotos" accept="image/*" multiple onchange="atualizarStatusFotos()">
         <div class="file-status" id="statusFotos">Nenhuma imagem selecionada (Mín. 4)</div>
+        <div class="image-preview-container" id="previewContainer"></div>
       </div>
 
       <div class="form-group">
         <label>Vídeo do Produto (Mínimo 1 vídeo)</label>
         <input type="file" id="video" accept="video/*" onchange="atualizarStatusVideo()">
         <div class="file-status" id="statusVideo">Nenhum vídeo selecionado (Mín. 1)</div>
+        <video id="previewVideo" class="video-preview" controls></video>
       </div>
 
       <div class="form-group">
@@ -62,10 +67,20 @@
     function atualizarStatusFotos() {
       const input = document.getElementById('fotos');
       const status = document.getElementById('statusFotos');
+      const container = document.getElementById('previewContainer');
+      container.innerHTML = '';
+      
       const qtd = input.files.length;
       if (qtd > 0) {
         status.innerText = qtd + " imagem(ns) selecionada(s) " + (qtd < 4 ? "(Faltam " + (4 - qtd) + ")" : "✅");
         status.style.color = qtd < 4 ? "#f87171" : "#38bdf8";
+
+        for (let i = 0; i < input.files.length; i++) {
+          const img = document.createElement('img');
+          img.src = URL.createObjectURL(input.files[i]);
+          img.className = 'image-preview';
+          container.appendChild(img);
+        }
       } else {
         status.innerText = "Nenhuma imagem selecionada (Mín. 4)";
         status.style.color = "#38bdf8";
@@ -75,12 +90,19 @@
     function atualizarStatusVideo() {
       const input = document.getElementById('video');
       const status = document.getElementById('statusVideo');
+      const videoPreview = document.getElementById('previewVideo');
+      
       if (input.files.length > 0) {
-        status.innerText = "Vídeo selecionado: " + input.files[0].name + " ✅";
+        const file = input.files[0];
+        status.innerText = "Vídeo selecionado: " + file.name + " ✅";
         status.style.color = "#38bdf8";
+        
+        videoPreview.src = URL.createObjectURL(file);
+        videoPreview.style.display = 'block';
       } else {
         status.innerText = "Nenhum vídeo selecionado (Mín. 1)";
         status.style.color = "#38bdf8";
+        videoPreview.style.display = 'none';
       }
     }
 
