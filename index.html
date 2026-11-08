@@ -224,4 +224,88 @@
             });
         });
 
-        document.getElementById('inputVideo
+        document.getElementById('inputVideo').addEventListener('change', function(e) {
+            const container = document.getElementById('previewVideo');
+            container.innerHTML = '';
+            const file = e.target.files[0];
+            if (file) {
+                const video = document.createElement('video');
+                video.src = URL.createObjectURL(file);
+                video.controls = true;
+                container.appendChild(video);
+            }
+        });
+
+        // Geração por IA
+        document.getElementById('btnGerarIa').addEventListener('click', function() {
+            const nome = document.getElementById('nomeProduto').value.trim();
+            if (!nome) {
+                alert('Digite o nome do produto primeiro!');
+                return;
+            }
+            document.getElementById('tituloSeo').value = nome.toUpperCase() + ' - ALTA QUALIDADE E CONFORTO PREMIUM';
+            document.getElementById('descricaoComercial').value = '🔥 PRODUTO PREMIUM: ' + nome + '\n\n' +
+                '✅ Desenvolvido com materiais de alta durabilidade.\n' +
+                '✅ Ideal para uso diário com máximo conforto e desempenho.\n\n' +
+                'Garanta já o seu!';
+        });
+
+        // Cálculo de preço
+        function calcularPreco() {
+            const custo = parseFloat(document.getElementById('custoProduto').value) || 0;
+            const lucro = parseFloat(document.getElementById('lucroDesejado').value) || 0;
+            const total = custo + (custo * (lucro / 100));
+            document.getElementById('precoRecomendado').innerText = 'R$ ' + total.toFixed(2).replace('.', ',');
+            return total.toFixed(2);
+        }
+
+        document.getElementById('custoProduto').addEventListener('input', calcularPreco);
+        document.getElementById('lucroDesejado').addEventListener('input', calcularPreco);
+
+        // Ação do Botão Publicar
+        document.getElementById('btnPublicar').addEventListener('click', async function() {
+            const isMlChecked = document.getElementById('chkML').checked;
+            const titulo = document.getElementById('tituloSeo').value;
+            const descricao = document.getElementById('descricaoComercial').value;
+            const preco = calcularPreco();
+
+            if (!titulo || !descricao) {
+                alert('Gere ou preencha o Título e a Descrição Comercial antes de publicar!');
+                return;
+            }
+
+            if (isMlChecked) {
+                const token = localStorage.getItem('ml_access_token');
+                
+                if (!token) {
+                    if (confirm('A sua conta do Mercado Livre ainda não está conectada. Deseja realizar a autenticação OAuth agora?')) {
+                        conectarMercadoLivre();
+                    }
+                    return;
+                }
+
+                alert('Enviando anúncio para o Mercado Livre...');
+                
+                try {
+                    const res = await fetch('/api/publicar/mercadolivre', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ title: titulo, price: preco, description: descricao, accessToken: token })
+                    });
+                    const data = await res.json();
+                    
+                    if (data.success) {
+                        alert('Anúncio publicado com sucesso no Mercado Livre! ID do Item: ' + data.item.id);
+                    } else {
+                        alert('Erro ao publicar: ' + data.message);
+                    }
+                } catch (err) {
+                    alert('Erro de conexão ao enviar o anúncio.');
+                }
+            } else {
+                alert('Selecione pelo menos uma plataforma marcada para publicar!');
+            }
+        });
+    </script>
+</body>
+</html>
