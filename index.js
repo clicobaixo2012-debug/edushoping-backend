@@ -1,38 +1,38 @@
-document.getElementById('produtoMidia').addEventListener('change', function(event) {
-    const files = event.target.files;
-    const imagesContainer = document.getElementById('images-preview');
-    const videoContainer = document.getElementById('video-preview');
-    
-    // Limpar pré-visualizações anteriores
-    imagesContainer.innerHTML = '';
-    videoContainer.innerHTML = '';
+const express = require('express');
+const axios = require('axios');
+const path = require('path');
+require('dotenv').config();
 
-    let imageCount = 0;
+const app = express();
+const PORT = process.env.PORT || 3000;
 
-    for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const fileURL = URL.createObjectURL(file);
+app.use(express.json());
 
-        if (file.type.startsWith('image/') && imageCount < 4) {
-            imageCount++;
-            // Criar miniatura para a imagem
-            const img = document.createElement('img');
-            img.src = fileURL;
-            img.style.width = '70px';
-            img.style.height = '70px';
-            img.style.objectFit = 'cover';
-            img.style.borderRadius = '6px';
-            img.style.border = '1px solid #444';
-            imagesContainer.appendChild(img);
-        } else if (file.type.startsWith('video/')) {
-            // Criar pré-visualização para o vídeo (colocado logo abaixo das imagens)
-            const video = document.createElement('video');
-            video.src = fileURL;
-            video.controls = true;
-            video.style.maxWidth = '100%';
-            video.style.maxHeight = '150px';
-            video.style.borderRadius = '6px';
-            videoContainer.appendChild(video);
-        }
+// Serve o ficheiro index.html na raiz do site
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// Rota de callback do Mercado Livre
+app.get('/auth/mercadolivre/callback', async (req, res) => {
+    const { code } = req.query;
+    if (!code) return res.status(400).send('Código não encontrado.');
+    try {
+        const response = await axios.post('https://api.mercadolibre.com/oauth/token', null, {
+            params: {
+                grant_type: 'authorization_code',
+                client_id: process.env.MERCADOLIVRE_CLIENT_ID,
+                client_secret: process.env.MERCADOLIVRE_CLIENT_SECRET,
+                code: code,
+                redirect_uri: process.env.MERCADOLIVRE_REDIRECT_URI
+            }
+        });
+        res.send('Autenticação com o Mercado Livre realizada com sucesso!');
+    } catch (error) {
+        res.status(500).send('Erro ao autenticar.');
     }
+});
+
+app.listen(PORT, () => {
+    console.log('Servidor a correr na porta ' + PORT);
 });
