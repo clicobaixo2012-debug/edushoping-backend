@@ -1,157 +1,216 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EDUSHOPING - Publicador Multi-Plataformas</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    body { background-color: #0b0f19; color: #fff; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
-    .container { width: 100%; max-width: 600px; display: flex; flex-direction: column; gap: 20px; }
-    .card { background: #131b2e; padding: 25px; border-radius: 12px; border: 1px solid #1e293b; box-shadow: 0 8px 25px rgba(0,0,0,0.5); }
-    h3 { color: #f8fafc; margin-bottom: 15px; font-size: 16px; }
-    .form-group { margin-bottom: 15px; }
-    label { display: block; font-size: 13px; color: #94a3b8; margin-bottom: 5px; }
-    input[type="text"], textarea { width: 100%; padding: 12px; background: #0f172a; border: 1px solid #334155; color: #fff; border-radius: 6px; font-size: 14px; outline: none; }
-    input[type="file"] { color: #94a3b8; font-size: 13px; }
-    textarea { height: 100px; resize: none; }
-    button { padding: 12px 20px; font-size: 14px; font-weight: bold; color: white; border: none; border-radius: 6px; cursor: pointer; transition: opacity 0.2s; }
-    button:hover { opacity: 0.9; }
-    .btn-shopee { background: #ee4d2d; width: 100%; }
-    .btn-publish { background: #16a34a; width: 100%; }
-    .file-status { font-size: 11px; color: #38bdf8; margin-top: 4px; }
-    .image-preview-container { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
-    .image-preview { width: 65px; height: 65px; object-fit: cover; border-radius: 6px; border: 1px dashed #6366f1; }
-    .video-preview { width: 100%; max-height: 150px; margin-top: 10px; border-radius: 6px; display: none; background: #000; }
-  </style>
+    <meta charset="UTF-8">
+    <title>edushoping - Central do Vendedor</title>
+    <style>
+        body {
+            background-color: #0b0f19;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        .card {
+            background-color: #131b2e;
+            border: 1px solid #1e293b;
+            border-radius: 10px;
+            padding: 25px;
+            width: 100%;
+            max-width: 600px;
+            margin-bottom: 20px;
+        }
+        h2 { font-size: 18px; margin-bottom: 15px; color: #f8fafc; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-size: 13px; margin-bottom: 5px; color: #94a3b8; }
+        input[type="text"], input[type="number"], textarea {
+            width: 100%;
+            padding: 10px;
+            background-color: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            color: #fff;
+            box-sizing: border-box;
+        }
+        textarea { resize: vertical; height: 80px; }
+        .platforms-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .platform-item {
+            background-color: #0f172a;
+            border: 1px solid #334155;
+            padding: 10px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            color: white;
+            border: none;
+            padding: 12px;
+            width: 100%;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+        .btn-success {
+            background-color: #10b981;
+            color: white;
+            border: none;
+            padding: 12px;
+            width: 100%;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .btn-shopee {
+            background-color: #ea580c;
+            color: white;
+            border: none;
+            padding: 12px;
+            width: 100%;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .preview-images {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+        .preview-images img {
+            width: 65px;
+            height: 65px;
+            object-fit: cover;
+            border-radius: 6px;
+            border: 1px solid #334155;
+        }
+        .preview-video {
+            margin-top: 8px;
+        }
+        .preview-video video {
+            max-width: 100%;
+            max-height: 140px;
+            border-radius: 6px;
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <div class="card">
-      <h3>1. Autenticação Oficial da Loja</h3>
-      <button class="btn-shopee" onclick="location.href='/auth/shopee'">Conectar Loja Shopee (OAuth)</button>
+
+    <!-- 1. Autenticação -->
+    <div class="card" style="text-align: center;">
+        <h2>1. Autenticação Oficial da Loja</h2>
+        <button class="btn-shopee">Conectar Loja Shopee (OAuth)</button>
     </div>
 
+    <!-- 2. Gerar Anúncio & Precificação -->
     <div class="card">
-      <h3>2. Publicar Produto na Central do Vendedor</h3>
-      
-      <div class="form-group">
-        <label>Fotos do Produto (Mínimo 4 imagens)</label>
-        <input type="file" id="fotos" accept="image/*" multiple onchange="atualizarStatusFotos()">
-        <div class="file-status" id="statusFotos">Nenhuma imagem selecionada (Mín. 4)</div>
-        <div class="image-preview-container" id="previewContainer"></div>
-      </div>
+        <h2>2. Gerar Anúncio & Precificação</h2>
 
-      <div class="form-group">
-        <label>Vídeo do Produto (Mínimo 1 vídeo)</label>
-        <input type="file" id="video" accept="video/*" onchange="atualizarStatusVideo()">
-        <div class="file-status" id="statusVideo">Nenhum vídeo selecionado (Mín. 1)</div>
-        <video id="previewVideo" class="video-preview" controls></video>
-      </div>
+        <!-- Fotos do Produto (Mínimo 4) -->
+        <div class="form-group">
+            <label>Fotos do Produto (Mínimo 4 imagens)</label>
+            <input type="file" id="inputImagens" accept="image/*" multiple>
+            <div id="previewImagens" class="preview-images"></div>
+        </div>
 
-      <div class="form-group">
-        <label>Título do Produto (SEO)</label>
-        <input type="text" id="titulo" placeholder="Ex: Par de Palmilha Ortopédica em Gel">
-      </div>
+        <!-- Vídeo do Produto (Mínimo 1) -->
+        <div class="form-group">
+            <label>Vídeo do Produto (Mínimo 1 vídeo)</label>
+            <input type="file" id="inputVideo" accept="video/*">
+            <div id="previewVideo" class="preview-video"></div>
+        </div>
 
-      <div class="form-group">
-        <label>Descrição Comercial</label>
-        <textarea id="descricao" placeholder="Detalhes completos do produto..."></textarea>
-      </div>
+        <!-- Nome Base / Palavra-Chave -->
+        <div class="form-group">
+            <label>Nome Base / Palavra-Chave do Produto</label>
+            <input type="text" placeholder="Ex: Par de Palmilha Ortopédica em Gel">
+        </div>
 
-      <button class="btn-publish" onclick="publicarProduto()">⚡ Publicar Direto na Shopee</button>
+        <button class="btn-primary">⚡ Gerar Anúncio Automático (IA)</button>
+
+        <!-- Título do Produto SEO -->
+        <div class="form-group" style="margin-top: 15px;">
+            <label>Título do Produto (SEO)</label>
+            <input type="text" placeholder="Título gerado automaticamente pela IA...">
+        </div>
+
+        <!-- Descrição Comercial -->
+        <div class="form-group">
+            <label>Descrição Comercial</label>
+            <textarea placeholder="Descrição comercial completa gerada pela IA..."></textarea>
+        </div>
+
+        <!-- Seleção de Plataformas -->
+        <div class="form-group">
+            <label>Selecione as Plataformas para Publicação</label>
+            <div class="platforms-grid">
+                <label class="platform-item"><input type="checkbox" checked> 🟠 Shopee</label>
+                <label class="platform-item"><input type="checkbox"> 🟠 Amazon</label>
+                <label class="platform-item"><input type="checkbox" checked> 🟡 Mercado Livre</label>
+                <label class="platform-item"><input type="checkbox"> 🔵 Magalu</label>
+                <label class="platform-item"><input type="checkbox"> ⚫ TikTok Shop</label>
+            </div>
+        </div>
+
+        <!-- Precificação e Lucro -->
+        <div class="platforms-grid">
+            <div class="form-group" style="margin-bottom:0;">
+                <label>Custo do Produto (R$)</label>
+                <input type="number" value="0.00" step="0.01">
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+                <label>Lucro Desejado (%)</label>
+                <input type="number" value="30">
+            </div>
+        </div>
+
+        <div style="margin-top: 15px; margin-bottom: 15px; text-align: center; background: #0f172a; padding: 10px; border-radius: 6px; border: 1px solid #334155;">
+            <span style="font-size: 13px; color: #94a3b8;">Preço de Venda Recomendado:</span>
+            <div style="font-size: 18px; font-weight: bold; color: #38bdf8;">R$ 0,00</div>
+        </div>
+
+        <button class="btn-success">⚡ Publicar nas Plataformas Selecionadas</button>
     </div>
-  </div>
 
-  <script>
-    function atualizarStatusFotos() {
-      const input = document.getElementById('fotos');
-      const status = document.getElementById('statusFotos');
-      const container = document.getElementById('previewContainer');
-      container.innerHTML = '';
-      
-      const qtd = input.files.length;
-      if (qtd > 0) {
-        status.innerText = qtd + " imagem(ns) selecionada(s) " + (qtd < 4 ? "(Faltam " + (4 - qtd) + ")" : "✅");
-        status.style.color = qtd < 4 ? "#f87171" : "#38bdf8";
-
-        for (let i = 0; i < input.files.length; i++) {
-          const img = document.createElement('img');
-          img.src = URL.createObjectURL(input.files[i]);
-          img.className = 'image-preview';
-          container.appendChild(img);
-        }
-      } else {
-        status.innerText = "Nenhuma imagem selecionada (Mín. 4)";
-        status.style.color = "#38bdf8";
-      }
-    }
-
-    function atualizarStatusVideo() {
-      const input = document.getElementById('video');
-      const status = document.getElementById('statusVideo');
-      const videoPreview = document.getElementById('previewVideo');
-      
-      if (input.files.length > 0) {
-        const file = input.files[0];
-        status.innerText = "Vídeo selecionado: " + file.name + " ✅";
-        status.style.color = "#38bdf8";
-        
-        videoPreview.src = URL.createObjectURL(file);
-        videoPreview.style.display = 'block';
-      } else {
-        status.innerText = "Nenhum vídeo selecionado (Mín. 1)";
-        status.style.color = "#38bdf8";
-        videoPreview.style.display = 'none';
-      }
-    }
-
-    async function publicarProduto() {
-      const fotosInput = document.getElementById('fotos');
-      const videoInput = document.getElementById('video');
-      const titulo = document.getElementById('titulo').value;
-      const descricao = document.getElementById('descricao').value;
-
-      if (!fotosInput.files || fotosInput.files.length < 4) {
-        alert('❌ Erro: É obrigatório enviar no mínimo 4 imagens do produto.');
-        return;
-      }
-
-      if (!videoInput.files || videoInput.files.length < 1) {
-        alert('❌ Erro: É obrigatório enviar no mínimo 1 vídeo do produto.');
-        return;
-      }
-
-      if (!titulo || !descricao) {
-        alert('Por favor, preencha o título e a descrição comercial.');
-        return;
-      }
-
-      const formData = new FormData();
-      for (let i = 0; i < fotosInput.files.length; i++) {
-        formData.append('images', fotosInput.files[i]);
-      }
-      formData.append('video', videoInput.files[0]);
-      formData.append('title', titulo);
-      formData.append('description', descricao);
-      formData.append('price', "49.90");
-
-      try {
-        const res = await fetch('/api/publish', {
-          method: 'POST',
-          body: formData
+    <script>
+        // Script para gerir as 4 imagens em cima e o vídeo logo abaixo
+        document.getElementById('inputImagens').addEventListener('change', function(e) {
+            const container = document.getElementById('previewImagens');
+            container.innerHTML = '';
+            const files = Array.from(e.target.files).slice(0, 4); // Limita a 4 imagens
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = document.createElement('img');
+                    img.src = event.target.result;
+                    container.appendChild(img);
+                }
+                reader.readAsDataURL(file);
+            });
         });
-        const data = await res.json();
-        
-        if (res.ok && data.success) {
-          alert('Sucesso! O produto com as mídias exigidas foi publicado diretamente na Central da Shopee via API!');
-        } else {
-          alert('Erro ao publicar: ' + (data.error || JSON.stringify(data)));
-        }
-      } catch (err) {
-        alert('Erro de comunicação com o servidor.');
-      }
-    }
-  </script>
+
+        document.getElementById('inputVideo').addEventListener('change', function(e) {
+            const container = document.getElementById('previewVideo');
+            container.innerHTML = '';
+            const file = e.target.files[0];
+            if (file) {
+                const video = document.createElement('video');
+                video.src = URL.createObjectURL(file);
+                video.controls = true;
+                container.appendChild(video);
+            }
+        });
+    </script>
 </body>
 </html>
