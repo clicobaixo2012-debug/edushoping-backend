@@ -9,7 +9,6 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 app.use(express.json());
 
-// Interface do EDUSHOPING com Gerador de Anúncio IA e Calculadora de Margem
 app.get('/', (req, res) => {
   res.send(`
     <!DOCTYPE html>
@@ -33,6 +32,7 @@ app.get('/', (req, res) => {
         .btn-submit { background-color: #10b981; color: white; }
         button:hover { opacity: 0.9; transform: translateY(-1px); }
         .result-box { background: #334155; padding: 12px; border-radius: 6px; margin-top: 10px; text-align: center; font-size: 1.1rem; color: #38bdf8; font-weight: bold; }
+        .image-preview { width: 100%; max-height: 250px; object-fit: contain; margin-top: 10px; border-radius: 6px; display: none; border: 1px dashed #6366f1; }
       </style>
     </head>
     <body>
@@ -50,12 +50,13 @@ app.get('/', (req, res) => {
           <h3>2. Gerar Anúncio & Precificação</h3>
           
           <label>Foto do Produto</label>
-          <input type="file" id="foto" accept="image/*">
+          <input type="file" id="foto" accept="image/*" onchange="mostrarPreview(event)">
+          <img id="previewImg" class="image-preview" alt="Pré-visualização da imagem">
 
           <label>Nome Base / Palavra-Chave do Produto</label>
           <input type="text" id="nomeBase" placeholder="Ex: Par de Palmilha Ortopédica em Gel">
 
-          <button class="btn-ai" onclick="gerarAnuncioIA()">✨ Gerar Anúncio Automático (IA)</button>
+          <button class="btn-ai" type="button" onclick="gerarAnuncioIA()">✨ Gerar Anúncio Automático (IA)</button>
 
           <label>Título do Produto (SEO)</label>
           <input type="text" id="titulo" placeholder="Título gerado automaticamente pela IA...">
@@ -78,11 +79,27 @@ app.get('/', (req, res) => {
             Preço de Venda Recomendado: R$ 0,00
           </div>
 
-          <button class="btn-submit" onclick="publicarProduto()">⚡ Publicar Direto na Shopee</button>
+          <button class="btn-submit" type="button" onclick="publicarProduto()">⚡ Publicar Direto na Shopee</button>
         </div>
       </div>
 
       <script>
+        function mostrarPreview(event) {
+          const file = event.target.files[0];
+          const img = document.getElementById('previewImg');
+          if (file) {
+            img.src = URL.createObjectURL(file);
+            img.style.display = 'block';
+            
+            // Se o campo Nome Base estiver vazio, preenche automaticamente com o nome do ficheiro (sem extensão)
+            const nomeInput = document.getElementById('nomeBase');
+            if (!nomeInput.value) {
+              const nomeFicheiro = file.name.replace(/\\.[^/.]+$/, "").replace(/[-_]/g, " ");
+              nomeInput.value = nomeFicheiro;
+            }
+          }
+        }
+
         function calcularPreco() {
           const custo = parseFloat(document.getElementById('custo').value) || 0;
           const margemDesejada = (parseFloat(document.getElementById('lucro').value) || 0) / 100;
@@ -92,11 +109,9 @@ app.get('/', (req, res) => {
             return;
           }
 
-          // Comissão Shopee (20%) + Taxa Fixa por item (R$ 4,00)
           const comissaoShopee = 0.20;
           const taxaFixa = 4.00;
 
-          // Fórmula: Preço = (Custo + TaxaFixa) / (1 - Comissão - Margem)
           let precoVenda = (custo + taxaFixa) / (1 - comissaoShopee - margemDesejada);
           
           if (precoVenda < 0 || isNaN(precoVenda)) precoVenda = 0;
@@ -105,15 +120,23 @@ app.get('/', (req, res) => {
         }
 
         function gerarAnuncioIA() {
-          const nome = document.getElementById('nomeBase').value;
+          let nome = document.getElementById('nomeBase').value;
+          const fileInput = document.getElementById('foto');
+
+          if (!nome && fileInput.files.length > 0) {
+            nome = fileInput.files[0].name.replace(/\\.[^/.]+$/, "").replace(/[-_]/g, " ");
+            document.getElementById('nomeBase').value = nome;
+          }
+
           if (!nome) {
-            alert('Por favor, digite o nome base do produto!');
+            alert('Por favor, selecione uma foto ou digite a palavra-chave do produto!');
             return;
           }
 
-          // Simulação de geração via IA
-          document.getElementById('titulo').value = nome + " Profissional Alta Qualidade - Pronta Entrega";
-          document.getElementById('descricao').value = "🔥 " + nome.toUpperCase() + " 🔥\n\n✅ Produto de alta durabilidade e conforto premium.\n✅ Ideal para uso diário com máxima resistência.\n✅ Envio imediato com garantia total de satisfação!";
+          const produtoFormatado = nome.charAt(0).toUpperCase() + nome.slice(1);
+          
+          document.getElementById('titulo').value = produtoFormatado + " Profissional Alta Qualidade - Pronta Entrega";
+          document.getElementById('descricao').value = "🔥 " + produtoFormatado.toUpperCase() + " 🔥\\n\\n✅ Produto de alta durabilidade, resistência e conforto premium.\\n✅ Design ergonômico ideal para o uso diário.\\n✅ Envio imediato com garantia total de satisfação e nota fiscal!";
         }
 
         function publicarProduto() {
@@ -125,7 +148,6 @@ app.get('/', (req, res) => {
   `);
 });
 
-// OAuth Shopee
 app.get('/auth/shopee', (req, res) => {
   const partnerId = process.env.SHOPEE_PARTNER_ID || '123456';
   const redirectUrl = encodeURIComponent('https://edushoping-backend-pro.onrender.com/callback');
