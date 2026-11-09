@@ -14,13 +14,14 @@ app.get('/', (req, res) => {
 });
 
 // ==========================================
-// 1. ROTA DE REDIRECIONAMENTO OAUTH
+// 1. ROTA DE REDIRECIONAMENTO OAUTH (com auth.mercadolivre.com.br)
 // ==========================================
 app.get('/auth/mercadolivre', (req, res) => {
     const CLIENT_ID_ML = '231788362649193';
     const REDIRECT_URI_ML = 'https://edushoping-backend-pro.onrender.com/auth/mercadolivre/callback';
     
-    const authUrl = `https://auth.mercadolivre.com/authorization?response_type=code&client_id=${CLIENT_ID_ML}&redirect_uri=${encodeURIComponent(REDIRECT_URI_ML)}&country_id=MLB`;
+    // Endpoint nacional do Brasil para garantir compatibilidade total
+    const authUrl = `https://auth.mercadolivre.com.br/authorization?response_type=code&client_id=${CLIENT_ID_ML}&redirect_uri=${encodeURIComponent(REDIRECT_URI_ML)}&country_id=MLB`;
     
     return res.redirect(authUrl);
 });
@@ -35,8 +36,7 @@ app.get('/auth/mercadolivre/callback', async (req, res) => {
     try {
         const REDIRECT_URI_ML = 'https://edushoping-backend-pro.onrender.com/auth/mercadolivre/callback';
 
-        // Requisição oficial ao Mercado Livre para obter o Token de Acesso
-        const response = await axios.post('https://api.mercadolivre.com/oauth/token', null, {
+        const response = await axios.post('https://api.mercadolibre.com/oauth/token', null, {
             params: {
                 grant_type: 'authorization_code',
                 client_id: '231788362649193',
@@ -48,14 +48,13 @@ app.get('/auth/mercadolivre/callback', async (req, res) => {
         
         const accessToken = response.data.access_token;
 
-        // Injeta o token com segurança no navegador do utilizador e redireciona
         res.send(`
             <!DOCTYPE html>
             <html lang="pt-BR">
             <head><meta charset="UTF-8"><title>Autenticação Concluída</title></head>
             <body style="background:#0b0f19; color:#fff; font-family:Arial; text-align:center; padding-top:50px;">
                 <h2>Loja conectada com sucesso ao Mercado Livre!</h2>
-                <p>A guardar credenciais e a redirecionar para a Central do Vendedor...</p>
+                <p>A guardar credenciais e a redirecionar...</p>
                 <script>
                     localStorage.setItem('ml_access_token', '${accessToken}');
                     setTimeout(() => { window.location.href = '/'; }, 2000);
@@ -65,7 +64,7 @@ app.get('/auth/mercadolivre/callback', async (req, res) => {
         `);
     } catch (error) {
         console.error('Erro detalhado OAuth:', error.response?.data || error.message);
-        res.status(500).send('Erro na autenticação com o Mercado Livre. Detalhes no console do servidor.');
+        res.status(500).send('Erro na autenticação com o Mercado Livre.');
     }
 });
 
@@ -86,7 +85,7 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
     if (!accessToken) {
         return res.status(401).json({ 
             success: false, 
-            message: 'Não autenticado no Mercado Livre. Conecte a sua conta no Passo 1 primeiro!' 
+            message: 'Não autenticado no Mercado Livre. Conecte a sua conta primeiro!' 
         });
     }
 
@@ -105,7 +104,7 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
             }
         };
 
-        const response = await axios.post('https://api.mercadolivre.com/items', payload, {
+        const response = await axios.post('https://api.mercadolibre.com/items', payload, {
             headers: {
                 'Authorization': `Bearer ${accessToken}`,
                 'Content-Type': 'application/json'
