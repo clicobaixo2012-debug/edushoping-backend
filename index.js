@@ -83,12 +83,15 @@ app.post('/auth/mercadolivre/notifications', (req, res) => {
 });
 
 // ==========================================
-// 4. ROTA DE PUBLICAÇÃO DE ANÚNCIOS (Com family_name incluído)
+// 4. ROTA DE PUBLICAÇÃO DE ANÚNCIOS (Com Debug Completo)
 // ==========================================
 app.post('/api/publicar/mercadolivre', async (req, res) => {
     const { title, price, description, accessToken } = req.body;
 
+    console.log('Recebido pedido para publicar no ML. Título:', title);
+
     if (!accessToken) {
+        console.log('Erro: Token não fornecido.');
         return res.status(401).json({ 
             success: false, 
             message: 'Não autenticado no Mercado Livre. Conecte a sua conta primeiro!' 
@@ -134,9 +137,10 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
             }
         });
 
+        console.log('Sucesso ao publicar item:', response.data.id);
         res.json({ success: true, item: response.data });
     } catch (error) {
-        console.error('Erro detalhado do Mercado Livre:', JSON.stringify(error.response?.data, null, 2));
+        console.error('ERRO COMPLETO DO MERCADO LIVRE:', JSON.stringify(error.response?.data, null, 2));
         res.status(500).json({ 
             success: false, 
             message: 'Erro ao criar anúncio no Mercado Livre', 
