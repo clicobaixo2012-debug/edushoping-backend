@@ -20,7 +20,7 @@ app.get('/auth/mercadolivre', (req, res) => {
     const CLIENT_ID_ML = process.env.MERCADOLIVRE_CLIENT_ID || '5939252701115149';
     const REDIRECT_URI_ML = 'https://edushoping-backend-pro.onrender.com/auth/mercadolivre/callback';
     
-    const authUrl = `https://auth.mercadolivre.com.br/authorization?response_type=code&client_id=${CLIENT_ID_ML}&redirect_uri=${encodeURIComponent(REDIRECT_URI_ML)}&country_id=MLB`;
+    const authUrl = `https://auth.mercadolibre.com.br/authorization?response_type=code&client_id=${CLIENT_ID_ML}&redirect_uri=${encodeURIComponent(REDIRECT_URI_ML)}&country_id=MLB`;
     
     return res.redirect(authUrl);
 });
@@ -83,7 +83,7 @@ app.post('/auth/mercadolivre/notifications', (req, res) => {
 });
 
 // ==========================================
-// 4. ROTA DE PUBLICAÇÃO DE ANÚNCIOS (Blindada e Flexível)
+// 4. ROTA DE PUBLICAÇÃO DE ANÚNCIOS (Com Family Name Integrado)
 // ==========================================
 app.post('/api/publicar/mercadolivre', async (req, res) => {
     const { title, price, description, accessToken, sku, brand, model } = req.body;
@@ -101,12 +101,12 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
     try {
         const payload = {
             title: title || "Produto Genérico para Teste",
-            category_id: "MLB157436", // Categoria Outros/Flexível para evitar bloqueios de atributos
+            category_id: "MLB157436", 
             price: parseFloat(price) || 29.90,
             currency_id: "BRL",
             available_quantity: 5,
             buying_mode: "buy_it_now",
-            listing_type_id: "gold_special", // Tipo de listagem clássica/geral aceite por contas de teste/vendedor
+            listing_type_id: "gold_special", 
             condition: "new",
             description: {
                 plain_text: description || "Produto de excelente qualidade, pronto para entrega."
@@ -122,6 +122,10 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
                 {
                     id: "MODEL",
                     value_name: model || "Padrão"
+                },
+                {
+                    id: "FAMILY_NAME",
+                    value_name: "Outros"
                 },
                 {
                     id: "SELLER_SKU",
@@ -140,7 +144,6 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
         console.log('Sucesso ao publicar item:', response.data.id);
         res.json({ success: true, item: response.data });
     } catch (error) {
-        // Regista o erro completo no terminal/logs do Render para diagnóstico preciso
         const mlErrorData = error.response?.data || error.message;
         console.error('ERRO COMPLETO DO MERCADO LIVRE:', JSON.stringify(mlErrorData, null, 2));
         
