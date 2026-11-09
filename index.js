@@ -13,35 +13,29 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// ==========================================
 // 1. ROTA DE REDIRECIONAMENTO OAUTH
-// ==========================================
 app.get('/auth/mercadolivre', (req, res) => {
-    const CLIENT_ID_ML = process.env.MERCADOLIVRE_CLIENT_ID || '231788362649193';
-    const protocol = req.headers['x-forwarded-proto'] || 'https';
-    const REDIRECT_URI_ML = `${protocol}://${req.get('host')}/auth/mercadolivre/callback`;
+    const CLIENT_ID_ML = '231788362649193';
+    const REDIRECT_URI_ML = 'https://edushoping-backend-pro.onrender.com/auth/mercadolivre/callback';
     
     const authUrl = `https://auth.mercadolivre.com/authorization?response_type=code&client_id=${CLIENT_ID_ML}&redirect_uri=${encodeURIComponent(REDIRECT_URI_ML)}&country_id=MLB`;
     
     return res.redirect(authUrl);
 });
 
-// ==========================================
 // 2. ROTA DE CALLBACK OAUTH
-// ==========================================
 app.get('/auth/mercadolivre/callback', async (req, res) => {
     const { code } = req.query;
     if (!code) return res.status(400).send('Código de autorização não encontrado.');
     
     try {
-        const protocol = req.headers['x-forwarded-proto'] || 'https';
-        const REDIRECT_URI_ML = `${protocol}://${req.get('host')}/auth/mercadolivre/callback`;
+        const REDIRECT_URI_ML = 'https://edushoping-backend-pro.onrender.com/auth/mercadolivre/callback';
 
         const response = await axios.post('https://api.mercadolibre.com/oauth/token', null, {
             params: {
                 grant_type: 'authorization_code',
-                client_id: process.env.MERCADOLIVRE_CLIENT_ID || '231788362649193',
-                client_secret: process.env.MERCADOLIVRE_CLIENT_SECRET || '',
+                client_id: '231788362649193',
+                client_secret: process.env.MERCADOLIVRE_CLIENT_SECRET || 'SUA_CHAVE_SECRETA_AQUI',
                 code: code,
                 redirect_uri: REDIRECT_URI_ML
             }
@@ -69,17 +63,13 @@ app.get('/auth/mercadolivre/callback', async (req, res) => {
     }
 });
 
-// ==========================================
 // 3. ROTA DE NOTIFICAÇÕES (WEBHOOK)
-// ==========================================
 app.post('/auth/mercadolivre/notifications', (req, res) => {
     console.log('Notificação recebida do Mercado Livre:', req.body);
     return res.status(200).send('Notification received');
 });
 
-// ==========================================
 // 4. ROTA DE PUBLICAÇÃO DE ANÚNCIOS
-// ==========================================
 app.post('/api/publicar/mercadolivre', async (req, res) => {
     const { title, price, description, accessToken } = req.body;
 
