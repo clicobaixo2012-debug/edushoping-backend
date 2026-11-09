@@ -275,6 +275,7 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
         categoria = await descobrirCategoria(title || family_name, accessToken);
     }
 
+    // Atributos obrigatórios incluindo SCALE_TYPE exigido por categorias de balanças
     const atributos = [
         {
             id: 'BRAND',
@@ -285,16 +286,21 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
             value_name: model || 'Padrão'
         },
         {
+            id: 'SCALE_TYPE',
+            value_name: 'Digital'
+        },
+        {
             id: 'SELLER_SKU',
             value_name: sku || `SKU-${Date.now()}`
         }
     ];
 
+    // Imagem de teste segura e ativa no servidor do ML
     const imagens = image && image.startsWith('http')
         ? [{ source: image }]
         : [
             {
-                source: 'https://http2.mlstatic.com/D_NQ_NP_917305-MLB43954602951_102020-O.jpg'
+                source: 'https://http2.mlstatic.com/D_NQ_NP_787595-MLB43954602951_102020-O.jpg'
             }
         ];
 
