@@ -301,7 +301,6 @@
                             accessToken: token,
                             brand: "Genérica",
                             model: nomeBase,
-                            familyName: "Variedades",
                             sku: "SKU-" + Math.floor(Math.random() * 1000000)
                         })
                     });
@@ -310,7 +309,7 @@
                     if (data.success) {
                         alert('Anúncio publicado com sucesso no Mercado Livre! ID do Item: ' + data.item.id);
                     } else {
-                        alert('Erro ao publicar: ' + (data.message || JSON.stringify(data.details)));
+                        alert('Erro do Mercado Livre: ' + JSON.stringify(data.details || data.message));
                     }
                 } catch (err) {
                     alert('Erro de conexão ao enviar o anúncio.');
