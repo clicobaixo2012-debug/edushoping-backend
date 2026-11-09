@@ -13,19 +13,34 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+// ==========================================
+// NOVA ROTA: Redirecionamento OAuth via Servidor
+// ==========================================
+app.get('/auth/mercadolivre', (req, res) => {
+    const CLIENT_ID_ML = '231788362649193';
+    // Constrói a redirect_uri dinamicamente com base no Render
+    const REDIRECT_URI_ML = `${req.protocol}://${req.get('host')}/auth/mercadolivre/callback`;
+    
+    // Força o redirecionamento diretamente do backend com o country_id travado no Brasil
+    const authUrl = `https://auth.mercadolivre.com/authorization?response_type=code&client_id=${CLIENT_ID_ML}&redirect_uri=${encodeURIComponent(REDIRECT_URI_ML)}&country_id=MLB`;
+    
+    return res.redirect(authUrl);
+});
+
 // Rota de callback OAuth do Mercado Livre
 app.get('/auth/mercadolivre/callback', async (req, res) => {
     const { code } = req.query;
     if (!code) return res.status(400).send('Código de autorização não encontrado.');
     
     try {
+        const REDIRECT_URI_ML = `${req.protocol}://${req.get('host')}/auth/mercadolivre/callback`;
         const response = await axios.post('https://api.mercadolibre.com/oauth/token', null, {
             params: {
                 grant_type: 'authorization_code',
                 client_id: process.env.MERCADOLIVRE_CLIENT_ID || '231788362649193',
                 client_secret: process.env.MERCADOLIVRE_CLIENT_SECRET,
                 code: code,
-                redirect_uri: process.env.MERCADOLIVRE_REDIRECT_URI
+                redirect_uri: process.env.MERCADOLIVRE_REDIRECT_URI || REDIRECT_URI_ML
             }
         });
         
@@ -63,7 +78,7 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
             }
         };
 
-        const response = await axios.post('https://api.mercadolibre.com/items', payload, {
+        const response = await axios.post('https://api.mercadolivre.com/items', payload, {
             headers: {
                 'Authorization': `Bearer ${accessToken}`,
                 'Content-Type': 'application/json'
