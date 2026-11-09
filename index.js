@@ -42,7 +42,7 @@ app.get('/auth/mercadolivre/callback', async (req, res) => {
                 client_id: CLIENT_ID_ML,
                 client_secret: process.env.MERCADOLIVRE_CLIENT_SECRET,
                 code: code,
-                redirect_uri: REDIRECT_URI_MLB
+                redirect_uri: REDIRECT_URI_ML
             }
         });
         
@@ -83,7 +83,7 @@ app.post('/auth/mercadolivre/notifications', (req, res) => {
 });
 
 // ==========================================
-// 4. ROTA DE PUBLICAÇÃO DE ANÚNCIOS (Ajustada para testes)
+// 4. ROTA DE PUBLICAÇÃO DE ANÚNCIOS (Com Atributos Obrigatórios)
 // ==========================================
 app.post('/api/publicar/mercadolivre', async (req, res) => {
     const { title, price, description, accessToken } = req.body;
@@ -96,21 +96,31 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
     }
 
     try {
-        // Payload limpo e compatível com anúncio clássico/gratuito para testes
         const payload = {
             title: title || "Balança Digital 10kg SF-400",
-            category_id: "MLB1648", // Categoria padrão segura para balanças e utilidades domésticas no Brasil
+            category_id: "MLB1648",
             price: parseFloat(price) || 26.00,
             currency_id: "BRL",
             available_quantity: 10,
             buying_mode: "buy_it_now",
-            listing_type_id: "free", // Usar listagem 'free' evita bloqueios de tarifas/envio obrigatório em contas novas
+            listing_type_id: "free",
             condition: "new",
             description: {
                 plain_text: description || "Balança digital de alta precisão."
             },
             pictures: [
-                { source: "https://http2.mlstatic.com/D_NQ_NP_917305-MLB43954602951_102020-O.jpg" } // Imagem pública de exemplo para passar na validação de fotos do ML
+                { source: "https://http2.mlstatic.com/D_NQ_NP_917305-MLB43954602951_102020-O.jpg" }
+            ],
+            // Adicionado os atributos obrigatórios exigidos pelo Mercado Livre para esta categoria
+            attributes: [
+                {
+                    id: "BRAND",
+                    value_name: "Genérica"
+                },
+                {
+                    id: "MODEL",
+                    value_name: "SF-400"
+                }
             ]
         };
 
