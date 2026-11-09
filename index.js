@@ -14,7 +14,7 @@ app.get('/', (req, res) => {
 });
 
 // ==========================================
-// 1. ROTA DE REDIRECIONAMENTO OAUTH (Novo Client ID)
+// 1. ROTA DE REDIRECIONAMENTO OAUTH
 // ==========================================
 app.get('/auth/mercadolivre', (req, res) => {
     const CLIENT_ID_ML = process.env.MERCADOLIVRE_CLIENT_ID || '5939252701115149';
@@ -27,7 +27,7 @@ app.get('/auth/mercadolivre', (req, res) => {
 });
 
 // ==========================================
-// 2. ROTA DE CALLBACK OAUTH (Novas Credenciais)
+// 2. ROTA DE CALLBACK OAUTH (Exibe o Token no Ecrã)
 // ==========================================
 app.get('/auth/mercadolivre/callback', async (req, res) => {
     const { code } = req.query;
@@ -48,24 +48,28 @@ app.get('/auth/mercadolivre/callback', async (req, res) => {
         });
         
         const accessToken = response.data.access_token;
+        const userId = response.data.user_id;
 
         res.send(`
             <!DOCTYPE html>
             <html lang="pt-BR">
-            <head><meta charset="UTF-8"><title>Autenticação Concluída</title></head>
+            <head>
+                <meta charset="UTF-8">
+                <title>Conexão Concluída</title>
+            </head>
             <body style="background:#0b0f19; color:#fff; font-family:Arial; text-align:center; padding-top:50px;">
-                <h2>Loja conectada com sucesso ao Mercado Livre!</h2>
-                <p>A guardar credenciais e a redirecionar...</p>
-                <script>
-                    localStorage.setItem('ml_access_token', '${accessToken}');
-                    setTimeout(() => { window.location.href = '/'; }, 2000);
-                </script>
+                <h1 style="color:#00e676;">Loja conectada com sucesso ao Mercado Livre!</h1>
+                <p><strong>User ID:</strong> ${userId}</p>
+                <p><strong>Access Token Gerado:</strong></p>
+                <textarea style="width:80%; height:80px; background:#1e293b; color:#00e676; border:1px solid #334155; padding:10px; border-radius:8px;" readonly>${accessToken}</textarea>
+                <br><br>
+                <p>Podes usar este token na tua aplicação para começar a gerir produtos.</p>
             </body>
             </html>
         `);
     } catch (error) {
         console.error('Erro detalhado OAuth:', error.response?.data || error.message);
-        res.status(500).send('Erro na autenticação com o Mercado Livre.');
+        res.status(500).send('Erro na autenticação com o Mercado Livre: ' + JSON.stringify(error.response?.data || error.message));
     }
 });
 
