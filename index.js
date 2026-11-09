@@ -27,7 +27,7 @@ app.get('/auth/mercadolivre', (req, res) => {
 });
 
 // ==========================================
-// 2. ROTA DE CALLBACK OAUTH (Exibe o Token no Ecrã)
+// 2. ROTA DE CALLBACK OAUTH (Com Redirecionamento Automático)
 // ==========================================
 app.get('/auth/mercadolivre/callback', async (req, res) => {
     const { code } = req.query;
@@ -50,20 +50,23 @@ app.get('/auth/mercadolivre/callback', async (req, res) => {
         const accessToken = response.data.access_token;
         const userId = response.data.user_id;
 
+        // Grava no navegador e redireciona automaticamente para a página principal
         res.send(`
             <!DOCTYPE html>
             <html lang="pt-BR">
             <head>
                 <meta charset="UTF-8">
-                <title>Conexão Concluída</title>
+                <title>Autenticação Concluída</title>
             </head>
             <body style="background:#0b0f19; color:#fff; font-family:Arial; text-align:center; padding-top:50px;">
                 <h1 style="color:#00e676;">Loja conectada com sucesso ao Mercado Livre!</h1>
-                <p><strong>User ID:</strong> ${userId}</p>
-                <p><strong>Access Token Gerado:</strong></p>
-                <textarea style="width:80%; height:80px; background:#1e293b; color:#00e676; border:1px solid #334155; padding:10px; border-radius:8px;" readonly>${accessToken}</textarea>
-                <br><br>
-                <p>Podes usar este token na tua aplicação para começar a gerir produtos.</p>
+                <p>User ID: <strong>${userId}</strong></p>
+                <p>A guardar credenciais e a redirecionar para a central...</p>
+                <script>
+                    localStorage.setItem('ml_access_token', '${accessToken}');
+                    localStorage.setItem('ml_user_id', '${userId}');
+                    setTimeout(() => { window.location.href = '/'; }, 1500);
+                </script>
             </body>
             </html>
         `);
