@@ -14,10 +14,10 @@ app.get('/', (req, res) => {
 });
 
 // ==========================================
-// 1. ROTA DE REDIRECIONAMENTO OAUTH (Servidor)
+// 1. ROTA DE REDIRECIONAMENTO OAUTH
 // ==========================================
 app.get('/auth/mercadolivre', (req, res) => {
-    const CLIENT_ID_ML = '231788362649193';
+    const CLIENT_ID_ML = process.env.MERCADOLIVRE_CLIENT_ID || '231788362649193';
     const protocol = req.headers['x-forwarded-proto'] || 'https';
     const REDIRECT_URI_ML = `${protocol}://${req.get('host')}/auth/mercadolivre/callback`;
     
@@ -37,11 +37,11 @@ app.get('/auth/mercadolivre/callback', async (req, res) => {
         const protocol = req.headers['x-forwarded-proto'] || 'https';
         const REDIRECT_URI_ML = `${protocol}://${req.get('host')}/auth/mercadolivre/callback`;
 
-        const response = await axios.post('https://api.mercadolivre.com/oauth/token', null, {
+        const response = await axios.post('https://api.mercadolibre.com/oauth/token', null, {
             params: {
                 grant_type: 'authorization_code',
                 client_id: process.env.MERCADOLIVRE_CLIENT_ID || '231788362649193',
-                client_secret: process.env.MERCADOLIVRE_CLIENT_SECRET,
+                client_secret: process.env.MERCADOLIVRE_CLIENT_SECRET || '',
                 code: code,
                 redirect_uri: REDIRECT_URI_ML
             }
@@ -49,7 +49,6 @@ app.get('/auth/mercadolivre/callback', async (req, res) => {
         
         const accessToken = response.data.access_token;
 
-        // Injeta o token de volta no navegador do cliente de forma limpa
         res.send(`
             <!DOCTYPE html>
             <html lang="pt-BR">
@@ -66,16 +65,15 @@ app.get('/auth/mercadolivre/callback', async (req, res) => {
         `);
     } catch (error) {
         console.error('Erro OAuth:', error.response?.data || error.message);
-        res.status(500).send('Erro na autenticação com Mercado Livre. Verifique as credenciais no servidor.');
+        res.status(500).send('Erro na autenticação com Mercado Livre.');
     }
 });
 
 // ==========================================
-// 3. ROTA DE NOTIFICAÇÕES (WEBHOOK) DO MERCADO LIVRE
+// 3. ROTA DE NOTIFICAÇÕES (WEBHOOK)
 // ==========================================
 app.post('/auth/mercadolivre/notifications', (req, res) => {
     console.log('Notificação recebida do Mercado Livre:', req.body);
-    // Retorna 200 OK imediatamente para confirmar o recebimento ao Mercado Livre
     return res.status(200).send('Notification received');
 });
 
@@ -88,7 +86,7 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
     if (!accessToken) {
         return res.status(401).json({ 
             success: false, 
-            message: 'Não autenticado no Mercado Livre. Conecte a sua conta no Passo 1 primeiro!' 
+            message: 'Não autenticado no Mercado Livre. Conecte a sua conta primeiro!' 
         });
     }
 
@@ -107,7 +105,7 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
             }
         };
 
-        const response = await axios.post('https://api.mercadolivre.com/items', payload, {
+        const response = await axios.post('https://api.mercadolibre.com/items', payload, {
             headers: {
                 'Authorization': `Bearer ${accessToken}`,
                 'Content-Type': 'application/json'
@@ -126,6 +124,5 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log('Servidor a correr na porta ' + PORT);
+    console.log('Servidor rodando na porta ' + PORT);
 });
-```
