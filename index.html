@@ -203,8 +203,19 @@
         const CLIENT_ID_ML = '231788362649193';
         const REDIRECT_URI_ML = window.location.origin + '/auth/mercadolivre/callback';
 
+        // Blindagem de Inicialização: Limpa query params e lixo órfão da URL
+        window.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('error') || urlParams.has('code')) {
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        });
+
         function conectarMercadoLivre() {
-            // Adicionado &country_id=MLB para travar permanentemente na API global do Brasil
+            // Destrói tokens antigos em cache antes de disparar o fluxo para evitar conflitos na aba normal
+            localStorage.removeItem('ml_access_token');
+            
+            // Endpoint global otimizado com country_id fixo para o Brasil
             const authUrl = `https://auth.mercadolivre.com/authorization?response_type=code&client_id=${CLIENT_ID_ML}&redirect_uri=${encodeURIComponent(REDIRECT_URI_ML)}&country_id=MLB`;
             window.location.href = authUrl;
         }
