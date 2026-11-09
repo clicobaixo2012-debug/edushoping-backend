@@ -14,14 +14,15 @@ app.get('/', (req, res) => {
 });
 
 // ==========================================
-// NOVA ROTA: Redirecionamento OAuth via Servidor
+// ROTA OAUTH: Redirecionamento via Servidor (Blindado HTTPS)
 // ==========================================
 app.get('/auth/mercadolivre', (req, res) => {
     const CLIENT_ID_ML = '231788362649193';
-    // Constrói a redirect_uri dinamicamente com base no Render
-    const REDIRECT_URI_ML = `${req.protocol}://${req.get('host')}/auth/mercadolivre/callback`;
     
-    // Força o redirecionamento diretamente do backend com o country_id travado no Brasil
+    // Força explicitamente o protocolo HTTPS para casar com a URL do painel do ML
+    const protocol = req.headers['x-forwarded-proto'] || 'https';
+    const REDIRECT_URI_ML = `${protocol}://${req.get('host')}/auth/mercadolivre/callback`;
+    
     const authUrl = `https://auth.mercadolivre.com/authorization?response_type=code&client_id=${CLIENT_ID_ML}&redirect_uri=${encodeURIComponent(REDIRECT_URI_ML)}&country_id=MLB`;
     
     return res.redirect(authUrl);
@@ -33,8 +34,10 @@ app.get('/auth/mercadolivre/callback', async (req, res) => {
     if (!code) return res.status(400).send('Código de autorização não encontrado.');
     
     try {
-        const REDIRECT_URI_ML = `${req.protocol}://${req.get('host')}/auth/mercadolivre/callback`;
-        const response = await axios.post('https://api.mercadolibre.com/oauth/token', null, {
+        const protocol = req.headers['x-forwarded-proto'] || 'https';
+        const REDIRECT_URI_ML = `${protocol}://${req.get('host')}/auth/mercadolivre/callback`;
+
+        const response = await axios.post('https://api.mercadolivre.com/oauth/token', null, {
             params: {
                 grant_type: 'authorization_code',
                 client_id: process.env.MERCADOLIVRE_CLIENT_ID || '231788362649193',
