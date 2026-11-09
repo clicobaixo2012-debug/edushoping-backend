@@ -127,6 +127,7 @@
         <h2>1. Autenticação Oficial das Lojas</h2>
         <button class="btn-shopee" onclick="alert('Redirecionando para OAuth da Shopee...')">Conectar Loja Shopee (OAuth)</button>
         <button class="btn-mercadolivre" onclick="conectarMercadoLivre()">Conectar Mercado Livre (OAuth)</button>
+        <div id="statusConexao" style="margin-top: 10px; font-size: 13px; color: #10b981; font-weight: bold;"></div>
     </div>
 
     <!-- 2. Gerar Anúncio & Precificação -->
@@ -201,14 +202,14 @@
 
     <script>
         window.addEventListener('DOMContentLoaded', () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.has('error') || urlParams.has('code')) {
-                window.history.replaceState({}, document.title, window.location.pathname);
+            // Verifica se a página carregou o token na URL (caso queira gerir direto)
+            const tokenSalvo = localStorage.getItem('ml_access_token');
+            if (tokenSalvo) {
+                document.getElementById('statusConexao').innerText = '✅ Conta do Mercado Livre Conectada!';
             }
         });
 
         function conectarMercadoLivre() {
-            localStorage.removeItem('ml_access_token');
             window.location.href = '/auth/mercadolivre';
         }
 
@@ -275,13 +276,17 @@
             }
 
             if (isMlChecked) {
-                const token = localStorage.getItem('ml_access_token');
+                let token = localStorage.getItem('ml_access_token');
                 
+                // Se não tiver o token guardado, permite colar o token obtido recentemente para facilitar o teste
                 if (!token) {
-                    if (confirm('A sua conta do Mercado Livre ainda não está conectada. Deseja realizar a autenticação OAuth agora?')) {
-                        conectarMercadoLivre();
+                    token = prompt('Insere o teu Access Token do Mercado Livre (gerado no callback):');
+                    if (token) {
+                        localStorage.setItem('ml_access_token', token.trim());
+                    } else {
+                        alert('É necessário um Access Token válido para publicar.');
+                        return;
                     }
-                    return;
                 }
 
                 alert('Enviando anúncio para o Mercado Livre...');
@@ -297,18 +302,15 @@
                     if (data.success) {
                         alert('Anúncio publicado com sucesso no Mercado Livre! ID do Item: ' + data.item.id);
                     } else {
-                        alert('Erro ao publicar: ' + data.message);
+                        alert('Erro ao publicar: ' + (data.message || JSON.stringify(data.details)));
                     }
                 } catch (err) {
                     alert('Erro de conexão ao enviar o anúncio.');
                 }
             } else {
-                alert('Selecione pelo menos uma plataforma marcada para publicar!');
+                alert('Selecione a plataforma Mercado Livre para publicar!');
             }
         });
     </script>
 </body>
 </html>
-```
-
----
