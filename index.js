@@ -1,6 +1,5 @@
-
 const express = require('express');
-const axios = require('axios');
+const axios = axios ? require('axios') : require('axios');
 const path = require('path');
 require('dotenv').config();
 
@@ -31,6 +30,34 @@ function limitarFamilyName(valor) {
 }
 
 // ==========================================
+// FUNÇÃO: DESCOBRIR CATEGORIA FOLHA AUTOMATICAMENTE
+// ==========================================
+
+async function descobrirCategoria(termoBusca, accessToken) {
+    try {
+        const query = termoBusca || "produto geral";
+        const response = await axios.get(
+            `https://api.mercadolibre.com/sites/MLB/domain_discovery/search?q=${encodeURIComponent(query)}`,
+            {
+                headers: {
+                    Authorization: `Bearer ${accessToken}`
+                },
+                timeout: 10000
+            }
+        );
+
+        if (response.data && response.data.length > 0 && response.data[0].category_id) {
+            console.log('Categoria descoberta automaticamente:', response.data[0].category_id);
+            return response.data[0].category_id;
+        }
+    } catch (error) {
+        console.warn('Aviso: Não foi possível descobrir a categoria automaticamente. Usando padrão.', error.message);
+    }
+    // Fallback para uma categoria válida garantida caso a busca falhe
+    return 'MLB1648'; 
+}
+
+// ==========================================
 // 1. ROTA PRINCIPAL
 // ==========================================
 
@@ -44,7 +71,7 @@ app.get('/', (req, res) => {
 
 app.get('/auth/mercadolivre', (req, res) => {
     const authUrl =
-        'https://auth.mercadolivre.com.br/authorization' +
+        'https://auth.mercadolibre.com.br/authorization' +
         '?response_type=code' +
         '&client_id=' + encodeURIComponent(CLIENT_ID_ML) +
         '&redirect_uri=' + encodeURIComponent(REDIRECT_URI_ML) +
@@ -223,7 +250,7 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
     // --------------------------------------
 
     const nomeOriginal = String(
-        family_name || title || ''
+        family_name || title || 'Produto'
     ).trim();
 
     const nomeFamilia = limitarFamilyName(nomeOriginal);
@@ -233,14 +260,6 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
             success: false,
             message: 'O nome da família do produto é obrigatório.'
         });
-    }
-
-    if (Array.from(nomeOriginal).length > 60) {
-        console.log(
-            'Family Name ajustado de',
-            Array.from(nomeOriginal).length,
-            'para 60 caracteres.'
-        );
     }
 
     // --------------------------------------
@@ -265,12 +284,14 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
     }
 
     // --------------------------------------
-    // VALIDAR CATEGORIA
+    // VALIDAR OU DESCOBRIR CATEGORIA
     // --------------------------------------
 
-    const categoria = String(
-        category_id || 'MLB271599'
-    ).trim();
+    let categoria = category_id;
+    if (!categoria || categoria.startsWith('MLB2715')) {
+        // Se não veio categoria ou se era aquela genérica antiga, descobre via domain_discovery
+        categoria = await descobrirCategoria(title || family_name, accessToken);
+    }
 
     // --------------------------------------
     // MONTAR ATRIBUTOS
@@ -292,10 +313,10 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
     ];
 
     // --------------------------------------
-    // MONTAR IMAGENS
+    // MONTAR IMAGENS (Garantindo imagem válida)
     // --------------------------------------
 
-    const imagens = image
+    const imagens = image && image.startsWith('http')
         ? [{ source: image }]
         : [
             {
@@ -322,16 +343,9 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
 
     try {
 
-        console.log(
-            'Enviando produto para o Mercado Livre...'
-        );
-
-        console.log(
-            'Family Name:',
-            nomeFamilia,
-            '| Caracteres:',
-            Array.from(nomeFamilia).length
-        );
+        console.log('Enviando produto para o Mercado Livre...');
+        console.log('Categoria final utilizada:', categoria);
+        console.log('Family Name:', nomeFamilia, '| Caracteres:', Array.from(nomeFamilia).length);
 
         // ----------------------------------
         // PUBLICAR PRODUTO
@@ -351,10 +365,7 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
 
         const item = response.data;
 
-        console.log(
-            'Produto publicado com sucesso:',
-            item.id
-        );
+        console.log('Produto publicado com sucesso:', item.id);
 
         // ----------------------------------
         // CADASTRAR DESCRIÇÃO
@@ -386,9 +397,7 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
 
                 descricaoStatus = 'publicada';
 
-                console.log(
-                    'Descrição cadastrada com sucesso.'
-                );
+                console.log('Descrição cadastrada com sucesso.');
 
             } catch (descriptionError) {
 
@@ -417,7 +426,8 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
             descricao: descricaoStatus,
             aviso_descricao: avisoDescricao,
             family_name_enviado: nomeFamilia,
-            caracteres_family_name: Array.from(nomeFamilia).length
+            caracteres_family_name: Array.from(nomeFamilia).length,
+            categoria_utilizada: categoria
         });
 
     } catch (error) {
