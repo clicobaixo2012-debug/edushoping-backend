@@ -83,12 +83,12 @@ app.post('/auth/mercadolivre/notifications', (req, res) => {
 });
 
 // ==========================================
-// 4. ROTA DE PUBLICAÇÃO DE ANÚNCIOS (Com SKU, GTIN e Atributos)
+// 4. ROTA DE PUBLICAÇÃO DE ANÚNCIOS (100% Dinâmica para Qualquer Produto)
 // ==========================================
 app.post('/api/publicar/mercadolivre', async (req, res) => {
-    const { title, price, description, accessToken } = req.body;
+    const { title, price, description, accessToken, sku, brand, model, familyName } = req.body;
 
-    console.log('Recebido pedido para publicar no ML. Título:', title);
+    console.log('Recebido pedido dinâmico para publicar no ML. Título:', title);
 
     if (!accessToken) {
         console.log('Erro: Token não fornecido.');
@@ -100,16 +100,16 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
 
     try {
         const payload = {
-            title: title || "Balança Digital 10kg SF-400",
+            title: title || "Produto Genérico",
             category_id: "MLB1648",
-            price: parseFloat(price) || 26.00,
+            price: parseFloat(price) || 29.90,
             currency_id: "BRL",
             available_quantity: 10,
             buying_mode: "buy_it_now",
             listing_type_id: "free",
             condition: "new",
             description: {
-                plain_text: description || "Balança digital de alta precisão."
+                plain_text: description || "Produto de alta qualidade."
             },
             pictures: [
                 { source: "https://http2.mlstatic.com/D_NQ_NP_917305-MLB43954602951_102020-O.jpg" }
@@ -117,19 +117,19 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
             attributes: [
                 {
                     id: "BRAND",
-                    value_name: "Genérica"
+                    value_name: brand || "Genérica"
                 },
                 {
                     id: "MODEL",
-                    value_name: "SF-400"
+                    value_name: model || "Padrão"
                 },
                 {
                     id: "FAMILY_NAME",
-                    value_name: "Balança"
+                    value_name: familyName || "Variedades"
                 },
                 {
                     id: "SELLER_SKU",
-                    value_name: "SF400-EDUSHOPING"
+                    value_name: sku || `SKU-${Date.now()}`
                 },
                 {
                     id: "GTIN",
@@ -145,7 +145,7 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
             }
         });
 
-        console.log('Sucesso ao publicar item:', response.data.id);
+        console.log('Sucesso ao publicar item dinâmico:', response.data.id);
         res.json({ success: true, item: response.data });
     } catch (error) {
         console.error('ERRO COMPLETO DO MERCADO LIVRE:', JSON.stringify(error.response?.data, null, 2));
