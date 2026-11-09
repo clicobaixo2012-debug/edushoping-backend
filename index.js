@@ -83,12 +83,12 @@ app.post('/auth/mercadolivre/notifications', (req, res) => {
 });
 
 // ==========================================
-// 4. ROTA DE PUBLICAÇÃO DE ANÚNCIOS (Corrigida sem Family Name)
+// 4. ROTA DE PUBLICAÇÃO DE ANÚNCIOS (Blindada e Flexível)
 // ==========================================
 app.post('/api/publicar/mercadolivre', async (req, res) => {
     const { title, price, description, accessToken, sku, brand, model } = req.body;
 
-    console.log('Recebido pedido dinâmico para publicar no ML. Título:', title);
+    console.log('Recebido pedido para publicar no ML. Título:', title);
 
     if (!accessToken) {
         console.log('Erro: Token não fornecido.');
@@ -100,16 +100,16 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
 
     try {
         const payload = {
-            title: title || "Produto Genérico",
-            category_id: "MLB1648",
+            title: title || "Produto Genérico para Teste",
+            category_id: "MLB157436", // Categoria Outros/Flexível para evitar bloqueios de atributos
             price: parseFloat(price) || 29.90,
             currency_id: "BRL",
-            available_quantity: 10,
+            available_quantity: 5,
             buying_mode: "buy_it_now",
-            listing_type_id: "free",
+            listing_type_id: "gold_special", // Tipo de listagem clássica/geral aceite por contas de teste/vendedor
             condition: "new",
             description: {
-                plain_text: description || "Produto de alta qualidade."
+                plain_text: description || "Produto de excelente qualidade, pronto para entrega."
             },
             pictures: [
                 { source: "https://http2.mlstatic.com/D_NQ_NP_917305-MLB43954602951_102020-O.jpg" }
@@ -126,10 +126,6 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
                 {
                     id: "SELLER_SKU",
                     value_name: sku || `SKU-${Date.now()}`
-                },
-                {
-                    id: "GTIN",
-                    value_name: "7898965000000"
                 }
             ]
         };
@@ -141,14 +137,17 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
             }
         });
 
-        console.log('Sucesso ao publicar item dinâmico:', response.data.id);
+        console.log('Sucesso ao publicar item:', response.data.id);
         res.json({ success: true, item: response.data });
     } catch (error) {
-        console.error('ERRO COMPLETO DO MERCADO LIVRE:', JSON.stringify(error.response?.data, null, 2));
+        // Regista o erro completo no terminal/logs do Render para diagnóstico preciso
+        const mlErrorData = error.response?.data || error.message;
+        console.error('ERRO COMPLETO DO MERCADO LIVRE:', JSON.stringify(mlErrorData, null, 2));
+        
         res.status(500).json({ 
             success: false, 
             message: 'Erro ao criar anúncio no Mercado Livre', 
-            details: error.response?.data 
+            details: mlErrorData 
         });
     }
 });
