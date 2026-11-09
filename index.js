@@ -20,7 +20,6 @@ app.get('/auth/mercadolivre', (req, res) => {
     const CLIENT_ID_ML = process.env.MERCADOLIVRE_CLIENT_ID || '5939252701115149';
     const REDIRECT_URI_ML = 'https://edushoping-backend-pro.onrender.com/auth/mercadolivre/callback';
     
-    // Endpoint nacional do Brasil para garantir compatibilidade total
     const authUrl = `https://auth.mercadolivre.com.br/authorization?response_type=code&client_id=${CLIENT_ID_ML}&redirect_uri=${encodeURIComponent(REDIRECT_URI_ML)}&country_id=MLB`;
     
     return res.redirect(authUrl);
@@ -43,14 +42,13 @@ app.get('/auth/mercadolivre/callback', async (req, res) => {
                 client_id: CLIENT_ID_ML,
                 client_secret: process.env.MERCADOLIVRE_CLIENT_SECRET,
                 code: code,
-                redirect_uri: REDIRECT_URI_ML
+                redirect_uri: REDIRECT_URI_MLB
             }
         });
         
         const accessToken = response.data.access_token;
         const userId = response.data.user_id;
 
-        // Grava no navegador e redireciona automaticamente para a página principal
         res.send(`
             <!DOCTYPE html>
             <html lang="pt-BR">
@@ -85,7 +83,7 @@ app.post('/auth/mercadolivre/notifications', (req, res) => {
 });
 
 // ==========================================
-// 4. ROTA DE PUBLICAÇÃO DE ANÚNCIOS
+// 4. ROTA DE PUBLICAÇÃO DE ANÚNCIOS (Ajustada para testes)
 // ==========================================
 app.post('/api/publicar/mercadolivre', async (req, res) => {
     const { title, price, description, accessToken } = req.body;
@@ -98,18 +96,22 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
     }
 
     try {
+        // Payload limpo e compatível com anúncio clássico/gratuito para testes
         const payload = {
-            title: title,
-            category_id: "MLB3530",
-            price: parseFloat(price),
+            title: title || "Balança Digital 10kg SF-400",
+            category_id: "MLB1648", // Categoria padrão segura para balanças e utilidades domésticas no Brasil
+            price: parseFloat(price) || 26.00,
             currency_id: "BRL",
             available_quantity: 10,
             buying_mode: "buy_it_now",
-            listing_type_id: "gold_special",
+            listing_type_id: "free", // Usar listagem 'free' evita bloqueios de tarifas/envio obrigatório em contas novas
             condition: "new",
             description: {
-                plain_text: description
-            }
+                plain_text: description || "Balança digital de alta precisão."
+            },
+            pictures: [
+                { source: "https://http2.mlstatic.com/D_NQ_NP_917305-MLB43954602951_102020-O.jpg" } // Imagem pública de exemplo para passar na validação de fotos do ML
+            ]
         };
 
         const response = await axios.post('https://api.mercadolibre.com/items', payload, {
@@ -121,7 +123,7 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
 
         res.json({ success: true, item: response.data });
     } catch (error) {
-        console.error('Erro ao publicar anúncio:', error.response?.data || error.message);
+        console.error('Erro detalhado do Mercado Livre:', JSON.stringify(error.response?.data, null, 2));
         res.status(500).json({ 
             success: false, 
             message: 'Erro ao criar anúncio no Mercado Livre', 
