@@ -14,10 +14,10 @@ app.get('/', (req, res) => {
 });
 
 // ==========================================
-// 1. ROTA DE REDIRECIONAMENTO OAUTH (com auth.mercadolivre.com.br)
+// 1. ROTA DE REDIRECIONAMENTO OAUTH (Novo Client ID)
 // ==========================================
 app.get('/auth/mercadolivre', (req, res) => {
-    const CLIENT_ID_ML = '231788362649193';
+    const CLIENT_ID_ML = process.env.MERCADOLIVRE_CLIENT_ID || '5939252701115149';
     const REDIRECT_URI_ML = 'https://edushoping-backend-pro.onrender.com/auth/mercadolivre/callback';
     
     // Endpoint nacional do Brasil para garantir compatibilidade total
@@ -27,7 +27,7 @@ app.get('/auth/mercadolivre', (req, res) => {
 });
 
 // ==========================================
-// 2. ROTA DE CALLBACK OAUTH
+// 2. ROTA DE CALLBACK OAUTH (Novas Credenciais)
 // ==========================================
 app.get('/auth/mercadolivre/callback', async (req, res) => {
     const { code } = req.query;
@@ -35,12 +35,13 @@ app.get('/auth/mercadolivre/callback', async (req, res) => {
     
     try {
         const REDIRECT_URI_ML = 'https://edushoping-backend-pro.onrender.com/auth/mercadolivre/callback';
+        const CLIENT_ID_ML = process.env.MERCADOLIVRE_CLIENT_ID || '5939252701115149';
 
         const response = await axios.post('https://api.mercadolibre.com/oauth/token', null, {
             params: {
                 grant_type: 'authorization_code',
-                client_id: '231788362649193',
-                client_secret: process.env.MERCADOLIVRE_CLIENT_SECRET || 'APP_USR-7132174697334468-110915-d22797e88229c15d4d39f403c945170d-231788362649193',
+                client_id: CLIENT_ID_ML,
+                client_secret: process.env.MERCADOLIVRE_CLIENT_SECRET,
                 code: code,
                 redirect_uri: REDIRECT_URI_ML
             }
