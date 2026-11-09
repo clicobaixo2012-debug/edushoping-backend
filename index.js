@@ -1,157 +1,323 @@
-const express = require('express');
-const axios = require('axios');
-const path = require('path');
-require('dotenv').config();
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>edushoping - Central do Vendedor SaaS</title>
+    <style>
+        body {
+            background-color: #0b0f19;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+        }
+        .card {
+            background-color: #131b2e;
+            border: 1px solid #1e293b;
+            border-radius: 10px;
+            padding: 25px;
+            width: 100%;
+            max-width: 600px;
+            margin-bottom: 20px;
+            box-sizing: border-box;
+        }
+        h2 { font-size: 18px; margin-bottom: 15px; color: #f8fafc; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-size: 13px; margin-bottom: 5px; color: #94a3b8; }
+        input[type="text"], input[type="number"], textarea {
+            width: 100%;
+            padding: 10px;
+            background-color: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            color: #fff;
+            box-sizing: border-box;
+        }
+        textarea { resize: vertical; height: 90px; }
+        .platforms-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .platform-item {
+            background-color: #0f172a;
+            border: 1px solid #334155;
+            padding: 10px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            color: white;
+            border: none;
+            padding: 12px;
+            width: 100%;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+        .btn-success {
+            background-color: #10b981;
+            color: white;
+            border: none;
+            padding: 12px;
+            width: 100%;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .btn-shopee {
+            background-color: #ea580c;
+            color: white;
+            border: none;
+            padding: 12px;
+            width: 100%;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+        .btn-mercadolivre {
+            background-color: #facc15;
+            color: #000;
+            border: none;
+            padding: 12px;
+            width: 100%;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .preview-images {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+        .preview-images img {
+            width: 65px;
+            height: 65px;
+            object-fit: cover;
+            border-radius: 6px;
+            border: 1px solid #334155;
+        }
+        .preview-video {
+            margin-top: 8px;
+        }
+        .preview-video video {
+            max-width: 100%;
+            max-height: 140px;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+    <!-- 1. Autenticação Oficial das Lojas -->
+    <div class="card" style="text-align: center;">
+        <h2>1. Autenticação Oficial das Lojas</h2>
+        <button class="btn-shopee" onclick="alert('Redirecionando para OAuth da Shopee...')">Conectar Loja Shopee (OAuth)</button>
+        <button class="btn-mercadolivre" onclick="conectarMercadoLivre()">Conectar Mercado Livre (OAuth)</button>
+        <div id="statusConexao" style="margin-top: 10px; font-size: 13px; color: #10b981; font-weight: bold;"></div>
+    </div>
 
-app.use(express.json());
+    <!-- 2. Gerar Anúncio & Precificação -->
+    <div class="card">
+        <h2>2. Publicar Produto na Central do Vendedor</h2>
 
-// Serve o frontend
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
+        <!-- Fotos do Produto -->
+        <div class="form-group">
+            <label>Fotos do Produto (Mínimo 4 imagens)</label>
+            <input type="file" id="inputImagens" accept="image/*" multiple>
+            <div id="previewImagens" class="preview-images"></div>
+        </div>
 
-// ==========================================
-// 1. ROTA DE REDIRECIONAMENTO OAUTH
-// ==========================================
-app.get('/auth/mercadolivre', (req, res) => {
-    const CLIENT_ID_ML = process.env.MERCADOLIVRE_CLIENT_ID || '5939252701115149';
-    const REDIRECT_URI_ML = 'https://edushoping-backend-pro.onrender.com/auth/mercadolivre/callback';
-    
-    const authUrl = `https://auth.mercadolivre.com.br/authorization?response_type=code&client_id=${CLIENT_ID_ML}&redirect_uri=${encodeURIComponent(REDIRECT_URI_ML)}&country_id=MLB`;
-    
-    return res.redirect(authUrl);
-});
+        <!-- Vídeo do Produto -->
+        <div class="form-group">
+            <label>Vídeo do Produto (Mínimo 1 vídeo)</label>
+            <input type="file" id="inputVideo" accept="video/*">
+            <div id="previewVideo" class="preview-video"></div>
+        </div>
 
-// ==========================================
-// 2. ROTA DE CALLBACK OAUTH (Com Redirecionamento Automático)
-// ==========================================
-app.get('/auth/mercadolivre/callback', async (req, res) => {
-    const { code } = req.query;
-    if (!code) return res.status(400).send('Código de autorização não encontrado.');
-    
-    try {
-        const REDIRECT_URI_ML = 'https://edushoping-backend-pro.onrender.com/auth/mercadolivre/callback';
-        const CLIENT_ID_ML = process.env.MERCADOLIVRE_CLIENT_ID || '5939252701115149';
+        <!-- Nome Base / Palavra-Chave -->
+        <div class="form-group">
+            <label>Nome Base / Palavra-Chave do Produto</label>
+            <input type="text" id="nomeProduto" placeholder="Ex: Par de Palmilha Ortopédica em Gel">
+        </div>
 
-        const response = await axios.post('https://api.mercadolibre.com/oauth/token', null, {
-            params: {
-                grant_type: 'authorization_code',
-                client_id: CLIENT_ID_ML,
-                client_secret: process.env.MERCADOLIVRE_CLIENT_SECRET,
-                code: code,
-                redirect_uri: REDIRECT_URI_ML
+        <button type="button" id="btnGerarIa" class="btn-primary">⚡ Gerar Anúncio Automático (IA)</button>
+
+        <!-- Título do Produto SEO -->
+        <div class="form-group" style="margin-top: 15px;">
+            <label>Título do Produto (SEO)</label>
+            <input type="text" id="tituloSeo" placeholder="Título gerado automaticamente pela IA...">
+        </div>
+
+        <!-- Descrição Comercial -->
+        <div class="form-group">
+            <label>Descrição Comercial</label>
+            <textarea id="descricaoComercial" placeholder="Descrição comercial completa gerada pela IA..."></textarea>
+        </div>
+
+        <!-- Seleção de Plataformas -->
+        <div class="form-group">
+            <label>Selecione as Plataformas para Publicação</label>
+            <div class="platforms-grid">
+                <label class="platform-item"><input type="checkbox" id="chkShopee"> 🟠 Shopee</label>
+                <label class="platform-item"><input type="checkbox" id="chkAmazon"> 🟠 Amazon</label>
+                <label class="platform-item"><input type="checkbox" id="chkML" checked> 🟡 Mercado Livre</label>
+                <label class="platform-item"><input type="checkbox" id="chkMagalu"> 🔵 Magalu</label>
+                <label class="platform-item"><input type="checkbox" id="chkTikTok"> ⚫ TikTok Shop</label>
+            </div>
+        </div>
+
+        <!-- Precificação e Lucro -->
+        <div class="platforms-grid">
+            <div class="form-group" style="margin-bottom:0;">
+                <label>Custo do Produto (R$)</label>
+                <input type="number" id="custoProduto" value="10.00" step="0.01">
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+                <label>Lucro Desejado (%)</label>
+                <input type="number" id="lucroDesejado" value="30">
+            </div>
+        </div>
+
+        <div style="margin-top: 15px; margin-bottom: 15px; text-align: center; background: #0f172a; padding: 10px; border-radius: 6px; border: 1px solid #334155;">
+            <span style="font-size: 13px; color: #94a3b8;">Preço de Venda Recomendado:</span>
+            <div id="precoRecomendado" style="font-size: 18px; font-weight: bold; color: #38bdf8;">R$ 13,00</div>
+        </div>
+
+        <button type="button" id="btnPublicar" class="btn-success">⚡ Publicar nas Plataformas Selecionadas</button>
+    </div>
+
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            const tokenSalvo = localStorage.getItem('ml_access_token');
+            if (tokenSalvo) {
+                document.getElementById('statusConexao').innerText = '✅ Conta do Mercado Livre Conectada!';
             }
         });
-        
-        const accessToken = response.data.access_token;
-        const userId = response.data.user_id;
 
-        res.send(`
-            <!DOCTYPE html>
-            <html lang="pt-BR">
-            <head>
-                <meta charset="UTF-8">
-                <title>Autenticação Concluída</title>
-            </head>
-            <body style="background:#0b0f19; color:#fff; font-family:Arial; text-align:center; padding-top:50px;">
-                <h1 style="color:#00e676;">Loja conectada com sucesso ao Mercado Livre!</h1>
-                <p>User ID: <strong>${userId}</strong></p>
-                <p>A guardar credenciais e a redirecionar para a central...</p>
-                <script>
-                    localStorage.setItem('ml_access_token', '${accessToken}');
-                    localStorage.setItem('ml_user_id', '${userId}');
-                    setTimeout(() => { window.location.href = '/'; }, 1500);
-                </script>
-            </body>
-            </html>
-        `);
-    } catch (error) {
-        console.error('Erro detalhado OAuth:', error.response?.data || error.message);
-        res.status(500).send('Erro na autenticação com o Mercado Livre: ' + JSON.stringify(error.response?.data || error.message));
-    }
-});
+        function conectarMercadoLivre() {
+            window.location.href = '/auth/mercadolivre';
+        }
 
-// ==========================================
-// 3. ROTA DE NOTIFICAÇÕES (WEBHOOK)
-// ==========================================
-app.post('/auth/mercadolivre/notifications', (req, res) => {
-    console.log('Notificação recebida do Mercado Livre:', req.body);
-    return res.status(200).send('Notification received');
-});
-
-// ==========================================
-// 4. ROTA DE PUBLICAÇÃO DE ANÚNCIOS (Blindada e Flexível)
-// ==========================================
-app.post('/api/publicar/mercadolivre', async (req, res) => {
-    const { title, price, description, accessToken, sku, brand, model } = req.body;
-
-    console.log('Recebido pedido para publicar no ML. Título:', title);
-
-    if (!accessToken) {
-        console.log('Erro: Token não fornecido.');
-        return res.status(401).json({ 
-            success: false, 
-            message: 'Não autenticado no Mercado Livre. Conecte a sua conta primeiro!' 
-        });
-    }
-
-    try {
-        const payload = {
-            title: title || "Produto Genérico para Teste",
-            category_id: "MLB157436", // Categoria Outros/Flexível para evitar bloqueios de atributos
-            price: parseFloat(price) || 29.90,
-            currency_id: "BRL",
-            available_quantity: 5,
-            buying_mode: "buy_it_now",
-            listing_type_id: "gold_special", // Tipo de listagem clássica/geral aceite por contas de teste/vendedor
-            condition: "new",
-            description: {
-                plain_text: description || "Produto de excelente qualidade, pronto para entrega."
-            },
-            pictures: [
-                { source: "https://http2.mlstatic.com/D_NQ_NP_917305-MLB43954602951_102020-O.jpg" }
-            ],
-            attributes: [
-                {
-                    id: "BRAND",
-                    value_name: brand || "Genérica"
-                },
-                {
-                    id: "MODEL",
-                    value_name: model || "Padrão"
-                },
-                {
-                    id: "SELLER_SKU",
-                    value_name: sku || `SKU-${Date.now()}`
+        document.getElementById('inputImagens').addEventListener('change', function(e) {
+            const container = document.getElementById('previewImagens');
+            container.innerHTML = '';
+            const files = Array.from(e.target.files).slice(0, 4);
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = document.createElement('img');
+                    img.src = event.target.result;
+                    container.appendChild(img);
                 }
-            ]
-        };
+                reader.readAsDataURL(file);
+            });
+        });
 
-        const response = await axios.post('https://api.mercadolibre.com/items', payload, {
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'Content-Type': 'application/json'
+        document.getElementById('inputVideo').addEventListener('change', function(e) {
+            const container = document.getElementById('previewVideo');
+            container.innerHTML = '';
+            const file = e.target.files[0];
+            if (file) {
+                const video = document.createElement('video');
+                video.src = URL.createObjectURL(file);
+                video.controls = true;
+                container.appendChild(video);
             }
         });
 
-        console.log('Sucesso ao publicar item:', response.data.id);
-        res.json({ success: true, item: response.data });
-    } catch (error) {
-        // Regista o erro completo no terminal/logs do Render para diagnóstico preciso
-        const mlErrorData = error.response?.data || error.message;
-        console.error('ERRO COMPLETO DO MERCADO LIVRE:', JSON.stringify(mlErrorData, null, 2));
-        
-        res.status(500).json({ 
-            success: false, 
-            message: 'Erro ao criar anúncio no Mercado Livre', 
-            details: mlErrorData 
+        document.getElementById('btnGerarIa').addEventListener('click', function() {
+            const nome = document.getElementById('nomeProduto').value.trim();
+            if (!nome) {
+                alert('Digite o nome do produto primeiro!');
+                return;
+            }
+            document.getElementById('tituloSeo').value = nome.toUpperCase() + ' - ALTA QUALIDADE E CONFORTO PREMIUM';
+            document.getElementById('descricaoComercial').value = '🔥 PRODUTO PREMIUM: ' + nome + '\n\n' +
+                '✅ Desenvolvido com materiais de alta durabilidade.\n' +
+                '✅ Ideal para uso diário com máximo conforto e desempenho.\n\n' +
+                'Garanta já o seu!';
         });
-    }
-});
 
-app.listen(PORT, () => {
-    console.log('Servidor rodando na porta ' + PORT);
-});
+        function calcularPreco() {
+            const custo = parseFloat(document.getElementById('custoProduto').value) || 0;
+            const lucro = parseFloat(document.getElementById('lucroDesejado').value) || 0;
+            const total = custo + (custo * (lucro / 100));
+            document.getElementById('precoRecomendado').innerText = 'R$ ' + total.toFixed(2).replace('.', ',');
+            return total.toFixed(2);
+        }
+
+        document.getElementById('custoProduto').addEventListener('input', calcularPreco);
+        document.getElementById('lucroDesejado').addEventListener('input', calcularPreco);
+
+        document.getElementById('btnPublicar').addEventListener('click', async function() {
+            const isMlChecked = document.getElementById('chkML').checked;
+            const titulo = document.getElementById('tituloSeo').value;
+            const descricao = document.getElementById('descricaoComercial').value;
+            const nomeBase = document.getElementById('nomeProduto').value.trim() || 'Produto';
+            const preco = calcularPreco();
+
+            if (!titulo || !descricao) {
+                alert('Gere ou preencha o Título e a Descrição Comercial antes de publicar!');
+                return;
+            }
+
+            if (isMlChecked) {
+                let token = localStorage.getItem('ml_access_token');
+                
+                if (!token) {
+                    token = prompt('Insere o teu Access Token do Mercado Livre:');
+                    if (token) {
+                        localStorage.setItem('ml_access_token', token.trim());
+                    } else {
+                        alert('É necessário um Access Token válido para publicar.');
+                        return;
+                    }
+                }
+
+                alert('Enviando anúncio para o Mercado Livre...');
+                
+                try {
+                    const res = await fetch('/api/publicar/mercadolivre', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            title: titulo, 
+                            price: preco, 
+                            description: descricao, 
+                            accessToken: token,
+                            brand: "Genérica",
+                            model: nomeBase,
+                            sku: "SKU-" + Math.floor(Math.random() * 1000000)
+                        })
+                    });
+                    const data = await res.json();
+                    
+                    if (data.success) {
+                        alert('Anúncio publicado com sucesso no Mercado Livre! ID do Item: ' + data.item.id);
+                    } else {
+                        alert('Erro do Mercado Livre: ' + JSON.stringify(data.details || data.message));
+                    }
+                } catch (err) {
+                    alert('Erro de conexão ao enviar o anúncio.');
+                }
+            } else {
+                alert('Selecione a plataforma Mercado Livre para publicar!');
+            }
+        });
+    </script>
+</body>
+</html>
