@@ -13,14 +13,25 @@ app.use(express.json({ limit: '10mb' }));
 // CONFIGURAÇÕES DO MERCADO LIVRE
 // ==========================================
 
-const CLIENT_ID_ML = process.env.MERCADOLIVRE_CLIENT_ID || '5939252701115149';
+const CLIENT_ID_ML =
+    process.env.MERCADOLIVRE_CLIENT_ID || '5939252701115149';
 
 const REDIRECT_URI_ML =
     process.env.MERCADOLIVRE_REDIRECT_URI ||
     'https://edushoping-backend-pro.onrender.com/auth/mercadolivre/callback';
 
 // ==========================================
-// 1. ROTA PRINCIPAL - FRONTEND
+// FUNÇÃO: LIMITAR FAMILY_NAME A 60 CARACTERES
+// ==========================================
+
+function limitarFamilyName(valor) {
+    return Array.from(
+        String(valor || '').trim()
+    ).slice(0, 60).join('');
+}
+
+// ==========================================
+// 1. ROTA PRINCIPAL
 // ==========================================
 
 app.get('/', (req, res) => {
@@ -28,16 +39,16 @@ app.get('/', (req, res) => {
 });
 
 // ==========================================
-// 2. AUTENTICAÇÃO OAUTH - MERCADO LIVRE
+// 2. AUTENTICAÇÃO OAUTH
 // ==========================================
 
 app.get('/auth/mercadolivre', (req, res) => {
     const authUrl =
-        `https://auth.mercadolivre.com.br/authorization` +
-        `?response_type=code` +
-        `&client_id=${CLIENT_ID_ML}` +
-        `&redirect_uri=${encodeURIComponent(REDIRECT_URI_ML)}` +
-        `&country_id=MLB`;
+        'https://auth.mercadolivre.com.br/authorization' +
+        '?response_type=code' +
+        '&client_id=' + encodeURIComponent(CLIENT_ID_ML) +
+        '&redirect_uri=' + encodeURIComponent(REDIRECT_URI_ML) +
+        '&country_id=MLB';
 
     res.redirect(authUrl);
 });
@@ -47,7 +58,14 @@ app.get('/auth/mercadolivre', (req, res) => {
 // ==========================================
 
 app.get('/auth/mercadolivre/callback', async (req, res) => {
-    const { code } = req.query;
+    const { code, error, error_description } = req.query;
+
+    if (error) {
+        return res.status(400).send(
+            'Autorização não concluída: ' +
+            String(error_description || error)
+        );
+    }
 
     if (!code) {
         return res.status(400).send(
@@ -79,7 +97,8 @@ app.get('/auth/mercadolivre/callback', async (req, res) => {
             {
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded'
-                }
+                },
+                timeout: 30000
             }
         );
 
@@ -141,7 +160,7 @@ app.get('/auth/mercadolivre/callback', async (req, res) => {
             error.response?.data || error.message
         );
 
-        res.status(500).send(
+        res.status(error.response?.status || 500).send(
             'Erro na autenticação com o Mercado Livre: ' +
             JSON.stringify(error.response?.data || error.message)
         );
@@ -149,7 +168,7 @@ app.get('/auth/mercadolivre/callback', async (req, res) => {
 });
 
 // ==========================================
-// 4. ROTA DE NOTIFICAÇÕES - WEBHOOK
+// 4. NOTIFICAÇÕES WEBHOOK
 // ==========================================
 
 app.post('/auth/mercadolivre/notifications', (req, res) => {
@@ -162,7 +181,7 @@ app.post('/auth/mercadolivre/notifications', (req, res) => {
 });
 
 // ==========================================
-// 5. PUBLICAÇÃO DE PRODUTOS NO MERCADO LIVRE
+// 5. PUBLICAÇÃO DE PRODUTOS
 // ==========================================
 
 app.post('/api/publicar/mercadolivre', async (req, res) => {
@@ -189,7 +208,10 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
     // VALIDAR TOKEN
     // --------------------------------------
 
-    if (!accessToken) {
+    if (
+        !accessToken ||
+        typeof accessToken !== 'string'
+    ) {
         return res.status(401).json({
             success: false,
             message: 'Não autenticado no Mercado Livre. Conecte sua conta primeiro!'
@@ -197,38 +219,58 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
     }
 
     // --------------------------------------
-    // VALIDAR NOME DO PRODUTO
+    // CORRIGIR E LIMITAR FAMILY_NAME
     // --------------------------------------
 
-    const nomeFamilia = String(
+    const nomeOriginal = String(
         family_name || title || ''
     ).trim();
+
+    const nomeFamilia = limitarFamilyName(nomeOriginal);
 
     if (!nomeFamilia) {
         return res.status(400).json({
             success: false,
-            message: 'O nome do produto é obrigatório.'
+            message: 'O nome da família do produto é obrigatório.'
         });
     }
 
+    if (Array.from(nomeOriginal).length > 60) {
+        console.log(
+            'Family Name ajustado de',
+            Array.from(nomeOriginal).length,
+            'para 60 caracteres.'
+        );
+    }
+
     // --------------------------------------
-    // VALIDAR PREÇO
+    // VALIDAR E CONVERTER PREÇO
     // --------------------------------------
 
-    const preco = Number(price);
+    let precoTexto = String(price ?? '').trim();
+
+    if (precoTexto.includes(',')) {
+        precoTexto = precoTexto
+            .replace(/\./g, '')
+            .replace(',', '.');
+    }
+
+    const preco = Number(precoTexto);
 
     if (!Number.isFinite(preco) || preco <= 0) {
         return res.status(400).json({
             success: false,
-            message: 'Informe um preço válido.'
+            message: 'Informe um preço válido para o produto.'
         });
     }
 
     // --------------------------------------
-    // DEFINIR CATEGORIA
+    // VALIDAR CATEGORIA
     // --------------------------------------
 
-    const categoria = category_id || 'MLB271599';
+    const categoria = String(
+        category_id || 'MLB271599'
+    ).trim();
 
     // --------------------------------------
     // MONTAR ATRIBUTOS
@@ -250,7 +292,7 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
     ];
 
     // --------------------------------------
-    // MONTAR IMAGEM
+    // MONTAR IMAGENS
     // --------------------------------------
 
     const imagens = image
@@ -262,39 +304,38 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
         ];
 
     // --------------------------------------
-    // MONTAR DADOS DO ANÚNCIO
+    // MONTAR PAYLOAD
     // --------------------------------------
 
     const payload = {
         family_name: nomeFamilia,
-
         category_id: categoria,
-
         price: preco,
         currency_id: 'BRL',
-
         available_quantity: 5,
-
         buying_mode: 'buy_it_now',
-
         listing_type_id: 'gold_special',
-
         condition: 'new',
-
         pictures: imagens,
-
         attributes: atributos
     };
 
     try {
 
-        // ----------------------------------
-        // PUBLICAR PRODUTO
-        // ----------------------------------
-
         console.log(
             'Enviando produto para o Mercado Livre...'
         );
+
+        console.log(
+            'Family Name:',
+            nomeFamilia,
+            '| Caracteres:',
+            Array.from(nomeFamilia).length
+        );
+
+        // ----------------------------------
+        // PUBLICAR PRODUTO
+        // ----------------------------------
 
         const response = await axios.post(
             'https://api.mercadolibre.com/items',
@@ -316,7 +357,7 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
         );
 
         // ----------------------------------
-        // CADASTRAR DESCRIÇÃO SEPARADAMENTE
+        // CADASTRAR DESCRIÇÃO
         // ----------------------------------
 
         let descricaoStatus = 'não informada';
@@ -326,6 +367,7 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
             typeof description === 'string' &&
             description.trim()
         ) {
+
             try {
 
                 await axios.post(
@@ -370,21 +412,15 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
 
         return res.status(201).json({
             success: true,
-
             message: 'Produto publicado no Mercado Livre!',
-
             item: item,
-
             descricao: descricaoStatus,
-
-            aviso_descricao: avisoDescricao
+            aviso_descricao: avisoDescricao,
+            family_name_enviado: nomeFamilia,
+            caracteres_family_name: Array.from(nomeFamilia).length
         });
 
     } catch (error) {
-
-        // ----------------------------------
-        // TRATAR ERROS DO MERCADO LIVRE
-        // ----------------------------------
 
         const mlErrorData =
             error.response?.data || error.message;
@@ -398,13 +434,9 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
         );
 
         return res.status(statusCode).json({
-
             success: false,
-
             message: 'Erro ao publicar produto no Mercado Livre.',
-
             details: mlErrorData
-
         });
     }
 });
@@ -415,24 +447,10 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
 
 app.listen(PORT, () => {
 
-    console.log(
-        '======================================'
-    );
-
-    console.log(
-        'EduShopping Backend iniciado!'
-    );
-
-    console.log(
-        'Servidor rodando na porta ' + PORT
-    );
-
-    console.log(
-        'Integração Mercado Livre disponível.'
-    );
-
-    console.log(
-        '======================================'
-    );
+    console.log('======================================');
+    console.log('EduShopping Backend iniciado!');
+    console.log('Servidor rodando na porta ' + PORT);
+    console.log('Integração Mercado Livre disponível.');
+    console.log('======================================');
 
 });
