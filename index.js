@@ -1,5 +1,5 @@
 const express = require('express');
-const axios = express ? require('axios') : null; // Mantém compatibilidade
+const axios = express ? require('axios') : null;
 const path = require('path');
 require('dotenv').config();
 
@@ -83,7 +83,7 @@ app.post('/auth/mercadolivre/notifications', (req, res) => {
 });
 
 // ==========================================
-// 4. ROTA DE PUBLICAÇÃO DE ANÚNCIOS (Com Family Name Correto)
+// 4. ROTA DE PUBLICAÇÃO DE ANÚNCIOS (Categoria Flexível)
 // ==========================================
 app.post('/api/publicar/mercadolivre', async (req, res) => {
     const { title, price, description, accessToken, sku, brand, model } = req.body;
@@ -101,7 +101,7 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
     try {
         const payload = {
             title: title || "Produto Genérico para Teste",
-            category_id: "MLB157436", 
+            category_id: "MLB271599", // Categoria alternativa mais aberta para testes de API
             price: parseFloat(price) || 29.90,
             currency_id: "BRL",
             available_quantity: 5,
@@ -122,10 +122,6 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
                 {
                     id: "MODEL",
                     value_name: model || "Padrão"
-                },
-                {
-                    id: "FAMILY_NAME",
-                    value_name: "Outros"
                 },
                 {
                     id: "SELLER_SKU",
