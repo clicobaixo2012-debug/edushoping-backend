@@ -83,7 +83,7 @@ app.post('/auth/mercadolivre/notifications', (req, res) => {
 });
 
 // ==========================================
-// 4. ROTA DE PUBLICAÇÃO DE ANÚNCIOS (Com Atributos Obrigatórios)
+// 4. ROTA DE PUBLICAÇÃO DE ANÚNCIOS (Com family_name incluído)
 // ==========================================
 app.post('/api/publicar/mercadolivre', async (req, res) => {
     const { title, price, description, accessToken } = req.body;
@@ -111,7 +111,6 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
             pictures: [
                 { source: "https://http2.mlstatic.com/D_NQ_NP_917305-MLB43954602951_102020-O.jpg" }
             ],
-            // Adicionado os atributos obrigatórios exigidos pelo Mercado Livre para esta categoria
             attributes: [
                 {
                     id: "BRAND",
@@ -120,6 +119,10 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
                 {
                     id: "MODEL",
                     value_name: "SF-400"
+                },
+                {
+                    id: "FAMILY_NAME",
+                    value_name: "Balança"
                 }
             ]
         };
