@@ -200,7 +200,6 @@
     </div>
 
     <script>
-        // Blindagem de Inicialização: Limpa query params e lixo órfão da URL
         window.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.has('error') || urlParams.has('code')) {
@@ -209,14 +208,10 @@
         });
 
         function conectarMercadoLivre() {
-            // Destrói tokens antigos em cache antes de disparar o fluxo
             localStorage.removeItem('ml_access_token');
-            
-            // Aponta diretamente para a rota controlada no backend do Render
             window.location.href = '/auth/mercadolivre';
         }
 
-        // Previsões de Imagens e Vídeo
         document.getElementById('inputImagens').addEventListener('change', function(e) {
             const container = document.getElementById('previewImagens');
             container.innerHTML = '';
@@ -244,7 +239,6 @@
             }
         });
 
-        // Geração por IA
         document.getElementById('btnGerarIa').addEventListener('click', function() {
             const nome = document.getElementById('nomeProduto').value.trim();
             if (!nome) {
@@ -258,7 +252,6 @@
                 'Garanta já o seu!';
         });
 
-        // Cálculo de preço
         function calcularPreco() {
             const custo = parseFloat(document.getElementById('custoProduto').value) || 0;
             const lucro = parseFloat(document.getElementById('lucroDesejado').value) || 0;
@@ -270,7 +263,6 @@
         document.getElementById('custoProduto').addEventListener('input', calcularPreco);
         document.getElementById('lucroDesejado').addEventListener('input', calcularPreco);
 
-        // Ação do Botão Publicar
         document.getElementById('btnPublicar').addEventListener('click', async function() {
             const isMlChecked = document.getElementById('chkML').checked;
             const titulo = document.getElementById('tituloSeo').value;
@@ -317,3 +309,6 @@
     </script>
 </body>
 </html>
+```
+
+---
