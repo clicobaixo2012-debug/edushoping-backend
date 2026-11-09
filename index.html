@@ -202,7 +202,6 @@
 
     <script>
         window.addEventListener('DOMContentLoaded', () => {
-            // Verifica se a página carregou o token na URL (caso queira gerir direto)
             const tokenSalvo = localStorage.getItem('ml_access_token');
             if (tokenSalvo) {
                 document.getElementById('statusConexao').innerText = '✅ Conta do Mercado Livre Conectada!';
@@ -268,6 +267,7 @@
             const isMlChecked = document.getElementById('chkML').checked;
             const titulo = document.getElementById('tituloSeo').value;
             const descricao = document.getElementById('descricaoComercial').value;
+            const nomeBase = document.getElementById('nomeProduto').value.trim() || 'Produto';
             const preco = calcularPreco();
 
             if (!titulo || !descricao) {
@@ -278,9 +278,8 @@
             if (isMlChecked) {
                 let token = localStorage.getItem('ml_access_token');
                 
-                // Se não tiver o token guardado, permite colar o token obtido recentemente para facilitar o teste
                 if (!token) {
-                    token = prompt('Insere o teu Access Token do Mercado Livre (gerado no callback):');
+                    token = prompt('Insere o teu Access Token do Mercado Livre:');
                     if (token) {
                         localStorage.setItem('ml_access_token', token.trim());
                     } else {
@@ -295,7 +294,16 @@
                     const res = await fetch('/api/publicar/mercadolivre', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ title: titulo, price: preco, description: descricao, accessToken: token })
+                        body: JSON.stringify({ 
+                            title: titulo, 
+                            price: preco, 
+                            description: descricao, 
+                            accessToken: token,
+                            brand: "Genérica",
+                            model: nomeBase,
+                            familyName: "Variedades",
+                            sku: "SKU-" + Math.floor(Math.random() * 1000000)
+                        })
                     });
                     const data = await res.json();
                     
