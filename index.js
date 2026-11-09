@@ -1,4 +1,143 @@
-const express = require('express');
+const express = require('express');const express = require('express');
+const axios = require('axios');
+const path = require('path');
+require('dotenv').config();
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.use(express.json());
+
+// Serve o frontend
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// ==========================================
+// 1. ROTA DE REDIRECIONAMENTO OAUTH (Servidor)
+// ==========================================
+app.get('/auth/mercadolivre', (req, res) => {
+    const CLIENT_ID_ML = '231788362649193';
+    const protocol = req.headers['x-forwarded-proto'] || 'https';
+    const REDIRECT_URI_ML = `${protocol}://${req.get('host')}/auth/mercadolivre/callback`;
+    
+    const authUrl = `https://auth.mercadolivre.com/authorization?response_type=code&client_id=${CLIENT_ID_ML}&redirect_uri=${encodeURIComponent(REDIRECT_URI_ML)}&country_id=MLB`;
+    
+    return res.redirect(authUrl);
+});
+
+// ==========================================
+// 2. ROTA DE CALLBACK OAUTH
+// ==========================================
+app.get('/auth/mercadolivre/callback', async (req, res) => {
+    const { code } = req.query;
+    if (!code) return res.status(400).send('Código de autorização não encontrado.');
+    
+    try {
+        const protocol = req.headers['x-forwarded-proto'] || 'https';
+        const REDIRECT_URI_ML = `${protocol}://${req.get('host')}/auth/mercadolivre/callback`;
+
+        const response = await axios.post('https://api.mercadolivre.com/oauth/token', null, {
+            params: {
+                grant_type: 'authorization_code',
+                client_id: process.env.MERCADOLIVRE_CLIENT_ID || '231788362649193',
+                client_secret: process.env.MERCADOLIVRE_CLIENT_SECRET,
+                code: code,
+                redirect_uri: REDIRECT_URI_ML
+            }
+        });
+        
+        const accessToken = response.data.access_token;
+
+        // Injeta o token de volta no navegador do cliente de forma limpa
+        res.send(`
+            <!DOCTYPE html>
+            <html lang="pt-BR">
+            <head><meta charset="UTF-8"><title>Autenticação Concluída</title></head>
+            <body style="background:#0b0f19; color:#fff; font-family:Arial; text-align:center; padding-top:50px;">
+                <h2>Loja conectada com sucesso ao Mercado Livre!</h2>
+                <p>A guardar credenciais e a redirecionar...</p>
+                <script>
+                    localStorage.setItem('ml_access_token', '${accessToken}');
+                    setTimeout(() => { window.location.href = '/'; }, 2000);
+                </script>
+            </body>
+            </html>
+        `);
+    } catch (error) {
+        console.error('Erro OAuth:', error.response?.data || error.message);
+        res.status(500).send('Erro na autenticação com Mercado Livre. Verifique as credenciais no servidor.');
+    }
+});
+
+// ==========================================
+// 3. ROTA DE NOTIFICAÇÕES (WEBHOOK) DO MERCADO LIVRE
+// ==========================================
+app.post('/auth/mercadolivre/notifications', (req, res) => {
+    console.log('Notificação recebida do Mercado Livre:', req.body);
+    // Retorna 200 OK imediatamente para confirmar o recebimento ao Mercado Livre
+    return res.status(200).send('Notification received');
+});
+
+// ==========================================
+// 4. ROTA DE PUBLICAÇÃO DE ANÚNCIOS
+// ==========================================
+app.post('/api/publicar/mercadolivre', async (req, res) => {
+    const { title, price, description, accessToken } = req.body;
+
+    if (!accessToken) {
+        return res.status(401).json({ 
+            success: false, 
+            message: 'Não autenticado no Mercado Livre. Conecte a sua conta no Passo 1 primeiro!' 
+        });
+    }
+
+    try {
+        const payload = {
+            title: title,
+            category_id: "MLB3530",
+            price: parseFloat(price),
+            currency_id: "BRL",
+            available_quantity: 10,
+            buying_mode: "buy_it_now",
+            listing_type_id: "gold_special",
+            condition: "new",
+            description: {
+                plain_text: description
+            }
+        };
+
+        const response = await axios.post('https://api.mercadolivre.com/items', payload, {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        res.json({ success: true, item: response.data });
+    } catch (error) {
+        console.error('Erro ao publicar:', error.response?.data || error.message);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Erro ao criar anúncio no Mercado Livre', 
+            details: error.response?.data 
+        });
+    }
+});
+
+app.listen(PORT, () => {
+    console.log('Servidor a correr na porta ' + PORT);
+});
+```
+
+---
+
+### 3. `index.js` (Opcional / Cópia de Segurança)
+Para garantir que o Render nunca falhe caso procure por `index.js` em vez de `server.js`, podes criar um ficheiro chamado **`index.js`** com apenas esta linha de redirecionamento de start:
+
+```javascript
+require('./server.js');
+```
 const axios = require('axios');
 const path = require('path');
 require('dotenv').config();
