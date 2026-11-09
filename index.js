@@ -83,10 +83,10 @@ app.post('/auth/mercadolivre/notifications', (req, res) => {
 });
 
 // ==========================================
-// 4. ROTA DE PUBLICAÇÃO DE ANÚNCIOS (Com Family Name Integrado)
+// 4. ROTA DE PUBLICAÇÃO DE ANÚNCIOS (Sem Atributos para Evitar Bloqueios)
 // ==========================================
 app.post('/api/publicar/mercadolivre', async (req, res) => {
-    const { title, price, description, accessToken, sku, brand, model } = req.body;
+    const { title, price, description, accessToken } = req.body;
 
     console.log('Recebido pedido para publicar no ML. Título:', title);
 
@@ -113,24 +113,6 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
             },
             pictures: [
                 { source: "https://http2.mlstatic.com/D_NQ_NP_917305-MLB43954602951_102020-O.jpg" }
-            ],
-            attributes: [
-                {
-                    id: "BRAND",
-                    value_name: brand || "Genérica"
-                },
-                {
-                    id: "MODEL",
-                    value_name: model || "Padrão"
-                },
-                {
-                    id: "FAMILY_NAME",
-                    value_name: "Outros"
-                },
-                {
-                    id: "SELLER_SKU",
-                    value_name: sku || `SKU-${Date.now()}`
-                }
             ]
         };
 
