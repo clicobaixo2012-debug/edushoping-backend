@@ -83,10 +83,10 @@ app.post('/auth/mercadolivre/notifications', (req, res) => {
 });
 
 // ==========================================
-// 4. ROTA DE PUBLICAÇÃO DE ANÚNCIOS (100% Dinâmica para Qualquer Produto)
+// 4. ROTA DE PUBLICAÇÃO DE ANÚNCIOS (Corrigida sem Family Name)
 // ==========================================
 app.post('/api/publicar/mercadolivre', async (req, res) => {
-    const { title, price, description, accessToken, sku, brand, model, familyName } = req.body;
+    const { title, price, description, accessToken, sku, brand, model } = req.body;
 
     console.log('Recebido pedido dinâmico para publicar no ML. Título:', title);
 
@@ -122,10 +122,6 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
                 {
                     id: "MODEL",
                     value_name: model || "Padrão"
-                },
-                {
-                    id: "FAMILY_NAME",
-                    value_name: familyName || "Variedades"
                 },
                 {
                     id: "SELLER_SKU",
