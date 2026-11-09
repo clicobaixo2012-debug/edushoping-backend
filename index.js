@@ -83,7 +83,7 @@ app.post('/auth/mercadolivre/notifications', (req, res) => {
 });
 
 // ==========================================
-// 4. ROTA DE PUBLICAÇÃO DE ANÚNCIOS (Com Debug Completo)
+// 4. ROTA DE PUBLICAÇÃO DE ANÚNCIOS (Com SKU, GTIN e Atributos)
 // ==========================================
 app.post('/api/publicar/mercadolivre', async (req, res) => {
     const { title, price, description, accessToken } = req.body;
@@ -126,6 +126,14 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
                 {
                     id: "FAMILY_NAME",
                     value_name: "Balança"
+                },
+                {
+                    id: "SELLER_SKU",
+                    value_name: "SF400-EDUSHOPING"
+                },
+                {
+                    id: "GTIN",
+                    value_name: "7898965000000"
                 }
             ]
         };
