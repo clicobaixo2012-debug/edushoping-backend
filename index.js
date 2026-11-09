@@ -1,5 +1,5 @@
 const express = require('express');
-const axios = axios ? require('axios') : require('axios');
+const axios = require('axios');
 const path = require('path');
 require('dotenv').config();
 
@@ -53,7 +53,6 @@ async function descobrirCategoria(termoBusca, accessToken) {
     } catch (error) {
         console.warn('Aviso: Não foi possível descobrir a categoria automaticamente. Usando padrão.', error.message);
     }
-    // Fallback para uma categoria válida garantida caso a busca falhe
     return 'MLB1648'; 
 }
 
@@ -231,10 +230,6 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
         title || family_name
     );
 
-    // --------------------------------------
-    // VALIDAR TOKEN
-    // --------------------------------------
-
     if (
         !accessToken ||
         typeof accessToken !== 'string'
@@ -244,10 +239,6 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
             message: 'Não autenticado no Mercado Livre. Conecte sua conta primeiro!'
         });
     }
-
-    // --------------------------------------
-    // CORRIGIR E LIMITAR FAMILY_NAME
-    // --------------------------------------
 
     const nomeOriginal = String(
         family_name || title || 'Produto'
@@ -261,10 +252,6 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
             message: 'O nome da família do produto é obrigatório.'
         });
     }
-
-    // --------------------------------------
-    // VALIDAR E CONVERTER PREÇO
-    // --------------------------------------
 
     let precoTexto = String(price ?? '').trim();
 
@@ -283,19 +270,10 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
         });
     }
 
-    // --------------------------------------
-    // VALIDAR OU DESCOBRIR CATEGORIA
-    // --------------------------------------
-
     let categoria = category_id;
     if (!categoria || categoria.startsWith('MLB2715')) {
-        // Se não veio categoria ou se era aquela genérica antiga, descobre via domain_discovery
         categoria = await descobrirCategoria(title || family_name, accessToken);
     }
-
-    // --------------------------------------
-    // MONTAR ATRIBUTOS
-    // --------------------------------------
 
     const atributos = [
         {
@@ -312,10 +290,6 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
         }
     ];
 
-    // --------------------------------------
-    // MONTAR IMAGENS (Garantindo imagem válida)
-    // --------------------------------------
-
     const imagens = image && image.startsWith('http')
         ? [{ source: image }]
         : [
@@ -323,10 +297,6 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
                 source: 'https://http2.mlstatic.com/D_NQ_NP_917305-MLB43954602951_102020-O.jpg'
             }
         ];
-
-    // --------------------------------------
-    // MONTAR PAYLOAD
-    // --------------------------------------
 
     const payload = {
         family_name: nomeFamilia,
@@ -347,10 +317,6 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
         console.log('Categoria final utilizada:', categoria);
         console.log('Family Name:', nomeFamilia, '| Caracteres:', Array.from(nomeFamilia).length);
 
-        // ----------------------------------
-        // PUBLICAR PRODUTO
-        // ----------------------------------
-
         const response = await axios.post(
             'https://api.mercadolibre.com/items',
             payload,
@@ -366,10 +332,6 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
         const item = response.data;
 
         console.log('Produto publicado com sucesso:', item.id);
-
-        // ----------------------------------
-        // CADASTRAR DESCRIÇÃO
-        // ----------------------------------
 
         let descricaoStatus = 'não informada';
         let avisoDescricao = null;
@@ -396,7 +358,6 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
                 );
 
                 descricaoStatus = 'publicada';
-
                 console.log('Descrição cadastrada com sucesso.');
 
             } catch (descriptionError) {
@@ -408,16 +369,11 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
                 );
 
                 descricaoStatus = 'pendente';
-
                 avisoDescricao =
                     descriptionError.response?.data ||
                     descriptionError.message;
             }
         }
-
-        // ----------------------------------
-        // RETORNAR RESULTADO
-        // ----------------------------------
 
         return res.status(201).json({
             success: true,
