@@ -65,12 +65,12 @@ app.get('/', (req, res) => {
 });
 
 // ==========================================
-// 2. AUTENTICAÇÃO OAUTH
+// 2. AUTENTICAÇÃO OAUTH (Corrigido para auth.mercadolivre.com)
 // ==========================================
 
 app.get('/auth/mercadolivre', (req, res) => {
     const authUrl =
-        'https://auth.mercadolibre.com.br/authorization' +
+        'https://auth.mercadolivre.com/authorization' +
         '?response_type=code' +
         '&client_id=' + encodeURIComponent(CLIENT_ID_ML) +
         '&redirect_uri=' + encodeURIComponent(REDIRECT_URI_ML) +
@@ -275,7 +275,6 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
         categoria = await descobrirCategoria(title || family_name, accessToken);
     }
 
-    // Atributos obrigatórios incluindo SCALE_TYPE exigido por categorias de balanças
     const atributos = [
         {
             id: 'BRAND',
@@ -295,7 +294,6 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
         }
     ];
 
-    // Imagem de teste segura e ativa no servidor do ML
     const imagens = image && image.startsWith('http')
         ? [{ source: image }]
         : [
