@@ -65,7 +65,7 @@ app.get('/', (req, res) => {
 });
 
 // ==========================================
-// 2. AUTENTICAÇÃO OAUTH (Corrigido para auth.mercadolivre.com)
+// 2. AUTENTICAÇÃO OAUTH
 // ==========================================
 
 app.get('/auth/mercadolivre', (req, res) => {
@@ -294,11 +294,12 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
         }
     ];
 
-    const imagens = image && image.startsWith('http')
+    // Imagem robusta e garantida
+    const imagens = image && typeof image === 'string' && image.startsWith('http')
         ? [{ source: image }]
         : [
             {
-                source: 'https://http2.mlstatic.com/D_NQ_NP_787595-MLB43954602951_102020-O.jpg'
+                source: 'https://http2.mlstatic.com/D_NQ_NP_831411-MLB43954602951_102020-O.jpg'
             }
         ];
 
