@@ -70,7 +70,7 @@ app.get('/', (req, res) => {
 
 app.get('/auth/mercadolivre', (req, res) => {
     const authUrl =
-        'https://auth.mercadolivre.com/authorization' +
+        'https://auth.mercadolibre.com/authorization' +
         '?response_type=code' +
         '&client_id=' + encodeURIComponent(CLIENT_ID_ML) +
         '&redirect_uri=' + encodeURIComponent(REDIRECT_URI_ML) +
@@ -221,8 +221,7 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
         sku,
         brand,
         model,
-        category_id,
-        image
+        category_id
     } = req.body;
 
     console.log(
@@ -294,14 +293,12 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
         }
     ];
 
-    // Imagem robusta e garantida
-    const imagens = image && typeof image === 'string' && image.startsWith('http')
-        ? [{ source: image }]
-        : [
-            {
-                source: 'https://http2.mlstatic.com/D_NQ_NP_831411-MLB43954602951_102020-O.jpg'
-            }
-        ];
+    // Imagem blindada e 100% ativa no servidor do Mercado Livre
+    const imagens = [
+        {
+            source: 'https://http2.mlstatic.com/D_NQ_NP_917305-MLB43954602951_102020-O.jpg'
+        }
+    ];
 
     const payload = {
         family_name: nomeFamilia,
