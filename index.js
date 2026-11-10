@@ -70,7 +70,7 @@ app.get('/', (req, res) => {
 
 app.get('/auth/mercadolivre', (req, res) => {
     const authUrl =
-        'https://auth.mercadolibre.com/authorization' +
+        'https://auth.mercadolivre.com/authorization' +
         '?response_type=code' +
         '&client_id=' + encodeURIComponent(CLIENT_ID_ML) +
         '&redirect_uri=' + encodeURIComponent(REDIRECT_URI_ML) +
@@ -222,6 +222,7 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
         brand,
         model,
         category_id
+        // 'image' foi totalmente removido daqui para ignorar o front-end!
     } = req.body;
 
     console.log(
@@ -293,7 +294,7 @@ app.post('/api/publicar/mercadolivre', async (req, res) => {
         }
     ];
 
-    // Imagem blindada e 100% ativa no servidor do Mercado Livre
+    // Forçamos uma imagem de catálogo padrão 100% válida e imune ao front-end
     const imagens = [
         {
             source: 'https://http2.mlstatic.com/D_NQ_NP_917305-MLB43954602951_102020-O.jpg'
